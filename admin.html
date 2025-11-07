@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Manager - List View</title>
+    <link rel="stylesheet" href="public/css/styles.css">
+    <script type="module" src="quote.js"></script>
+    <style>
+        /* Quote List Manager Specific Styles */
+        .admin-container {
+            width: 100%;
+            max-width: 1125px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .admin-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .admin-nav {
+            background-color: #F8F8F8;
+            padding: 15px;
+            margin-bottom: 30px;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+        }
+        
+        .admin-nav ul {
+            display: flex;
+            list-style: none;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .admin-nav button {
+            padding: 8px 16px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .admin-nav button:hover {
+            background-color: #CC0000;
+        }
+        
+        .search-bar {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .quote-item {
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: box-shadow 0.3s;
+        }
+        
+        .quote-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .quote-item .quote-details {
+            flex: 1;
+        }
+        
+        .quote-item h4 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .quote-item .quote-date {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .quote-list {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: #333;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #CC0000;
+        }
+        
+        .btn-secondary {
+            background-color: #E0E0E0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #CCC;
+        }
+        
+        .btn-danger {
+            background-color: #CC0000;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #990000;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .alert-success {
+            background-color: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+        
+        .alert-error {
+            background-color: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+        
+        .no-quotes {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>QUOTE MANAGER</h1>
+            <p>搜索、预览和管理您的报价单</p>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="admin-nav">
+            <ul>
+                <li><a href="edit-quote.html?new=true" class="btn btn-primary">创建新报价单</a></li>
+                <li><button class="btn btn-secondary" onclick="saveAllChanges()">保存更改</button></li>
+            </ul>
+        </nav>
+
+        <!-- Quote List Section -->
+        <div id="quote-list-alert" class="alert" style="display: none;"></div>
+        
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" id="search-quote" placeholder="搜索报价单..." oninput="filterQuotes()">
+        </div>
+        
+        <h2 class="section-title">报价单列表</h2>
+        <div class="quote-list">
+            <div id="all-quotes-list"></div>
+        </div>
+
+        <!-- No quotes message -->
+        <div id="no-quotes-message" class="no-quotes" style="display: none;">
+            <p>暂无报价单，请点击上方按钮创建新报价单</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // 导入CRUD操作模块
+        import { deleteQuote as removeQuote } from './crud/quote-crud.js';
+        import { initializeData, showAlert } from './crud/quote-list.js';
+        
+        // 全局变量
+        let quotes = {};
+        
+        // 删除Quote
+        function deleteQuote(quoteId) {
+            if (confirm(`确定要删除报价单: ${quotes[quoteId].name} 吗？此操作不可恢复。`)) {
+                const result = removeQuote(quotes, quoteId);
+                if (result.success) {
+                    quotes = result.quotes;
+                    renderQuoteList();
+                    showAlert('quote-list-alert', '报价单已删除');
+                }
+            }
+        }
+        
+        // 预览报价单
+        function previewQuote(quoteId) {
+            const quote = quotes[quoteId];
+            if (!quote) return;
+            
+            // 将报价单数据存储到localStorage
+            localStorage.setItem('previewQuoteData', JSON.stringify(quote));
+            
+            // 直接打开standalone-preview.html页面
+            window.open('standalone-preview.html', '_blank');
+        }
+        
+        // 渲染报价单列表
+        function renderQuoteList(filteredQuotes = null) {
+            const quoteListContainer = document.getElementById('all-quotes-list');
+            const noQuotesMessage = document.getElementById('no-quotes-message');
+            
+            quoteListContainer.innerHTML = '';
+            
+            // 使用过滤后的列表或完整列表
+            const displayQuotes = filteredQuotes || quotes;
+            const quoteIds = Object.keys(displayQuotes);
+            
+            if (quoteIds.length === 0) {
+                noQuotesMessage.style.display = 'block';
+            } else {
+                noQuotesMessage.style.display = 'none';
+                
+                // 按创建时间降序排列（假设ID是递增的）
+                quoteIds.sort((a, b) => b - a).forEach(id => {
+                    const quote = displayQuotes[id];
+                    const quoteItem = document.createElement('div');
+                    quoteItem.className = 'quote-item';
+                    
+                    // 格式化日期显示
+                    const date = new Date(quote.createdAt || Date.now());
+                    const formattedDate = date.toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    quoteItem.innerHTML = `
+                        <div class="quote-details">
+                            <h4>${quote.name}</h4>
+                            <div class="quote-date">创建时间: ${formattedDate}</div>
+                        </div>
+                        <div class="action-buttons">
+                            <a href="edit-quote.html?id=${id}" class="btn btn-primary">编辑</a>
+                            <button class="btn btn-secondary" onclick="previewQuote(${id})"><strong>预览</strong></button>
+                            <button class="btn btn-danger" onclick="deleteQuote(${id})"><strong>删除</strong></button>
+                        </div>
+                    `;
+                    
+                    quoteListContainer.appendChild(quoteItem);
+                });
+            }
+        }
+        
+        // 过滤报价单
+        function filterQuotes() {
+            const searchTerm = document.getElementById('search-quote').value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderQuoteList();
+                return;
+            }
+            
+            const filteredQuotes = {};
+            
+            Object.keys(quotes).forEach(id => {
+                const quote = quotes[id];
+                if (quote.name.toLowerCase().includes(searchTerm)) {
+                    filteredQuotes[id] = quote;
+                }
+            });
+            
+            renderQuoteList(filteredQuotes);
+        }
+        
+        // 从localStorage加载数据并初始化
+        function loadData() {
+            quotes = initializeData();
+            renderQuoteList();
+        }
+        
+        // 保存所有更改
+        function saveAllChanges() {
+            // 保存当前的quotes对象到localStorage
+            try {
+                localStorage.setItem('quotes', JSON.stringify(quotes));
+                showAlert('quote-list-alert', '所有更改已保存');
+            } catch (error) {
+                console.error('保存失败:', error);
+                showAlert('quote-list-alert', '保存失败，请重试', false);
+            }
+        }
+        
+        // 全局函数定义，使HTML中的内联事件能访问
+        window.deleteQuote = deleteQuote;
+        window.previewQuote = previewQuote;
+        window.filterQuotes = filterQuotes;
+        window.showAlert = showAlert;
+        window.saveAllChanges = saveAllChanges;
+        
+        // 初始化页面
+        function init() {
+            // 加载报价单数据
+            loadData();
+        }
+        
+        // 在DOM加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

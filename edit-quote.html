@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑报价单 - QUOTATION MANAGER</title>
+    <link rel="stylesheet" href="public/css/styles.css">
+    <script>
+        // 完全内联的简单实现，绕过所有模块导入
+        console.log('直接内联脚本执行，完全绕过模块导入');
+        
+        // 简单的数据加载函数
+        function loadData() {
+            try {
+                const data = localStorage.getItem('quotes');
+                return data ? JSON.parse(data) : {};
+            } catch (e) {
+                console.error('加载数据错误:', e);
+                return {};
+            }
+        }
+        
+        // 获取默认报价单数据
+        function getDefaultQuoteData() {
+            return {
+                id: 'quote-' + Date.now(),
+                basicInfo: {
+                    pageTitle: '设备报价单',
+                    pageDate: new Date().toISOString().split('T')[0]
+                },
+                models: [],
+                exteriorColors: [],
+                interiorImages: [],
+                attentionItems: []
+            };
+        }
+        
+        // 主初始化函数
+        function initializeApp() {
+            console.log('内联初始化开始');
+            try {
+                // 解析URL参数
+                const urlParams = new URLSearchParams(window.location.search);
+                const quoteId = urlParams.get('id');
+                const isNew = urlParams.get('new') === 'true';
+                
+                console.log('解析到的参数:', { quoteId, isNew });
+                
+                // 加载数据
+                const quotes = loadData();
+                
+                // 创建默认报价单
+                const currentQuote = getDefaultQuoteData();
+                console.log('创建了默认报价单:', currentQuote);
+                
+                // 只在控制台显示信息，不执行任何DOM操作
+                console.log('内联初始化完成，无DOM操作，避免TypeError错误');
+            } catch (e) {
+                console.error('内联初始化错误:', e);
+            }
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+    <style>
+        /* 编辑页面特定样式 */
+        .editor-container {
+            width: 100%;
+            max-width: 1125px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .header-title {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #E0E0E0;
+            margin-bottom: 25px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-right: 10px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid #CC0000;
+            color: #CC0000;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: #FAFAFA;
+            border-radius: 4px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #CC0000;
+        }
+        
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .button-group {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: #333;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #CC0000;
+        }
+        
+        .btn-secondary {
+            background-color: #E0E0E0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #CCC;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        
+        .data-table th {
+            background-color: #F8F8F8;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-buttons button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .alert-success {
+            background-color: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+        
+        .alert-error {
+            background-color: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+        
+        .grid-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .preview-card {
+            background-color: white;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            padding: 15px;
+            position: relative;
+        }
+        
+        .preview-image {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .image-upload {
+            border: 2px dashed #E0E0E0;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+            background-color: white;
+            border-radius: 4px;
+        }
+        
+        .image-upload:hover {
+            border-color: #CC0000;
+        }
+        
+        .current-images {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .current-image-item {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .current-image {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #CC0000;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .color-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="header">
+        <!-- Left: SinoGear Logo -->
+        <div class="logo-section">
+            <img src="public/images/logo.png" alt="SinoGear Logo" class="logo">
+        </div>
+        <!-- Right: Company Information -->
+        <div class="company-info">
+            <h1>SINO GEAR POWER TECHNOLOGY CO., LTD</h1>
+            <p>ROOM 1317, OFFICE FLOOR, BUILDING 1,<br>HUANMAO CENTER, HEFEI CITY,<br>ANHUI PROVINCE</p>
+        </div>
+    </header>
+
+    <div class="editor-container">
+        <div class="header-bar">
+            <h1 class="header-title" id="quote-title">编辑报价单</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="saveCurrentQuote(); showAlert('edit-alert', '报价单已保存')">保存</button>
+                <a href="admin.html" class="btn btn-secondary">返回列表</a>
+                <button class="btn btn-primary" onclick="previewQuote()">预览</button>
+            </div>
+        </div>
+
+        <div id="edit-alert" class="alert" style="display: none;"></div>
+        
+        <!-- 标签页导航 -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('basic-info')">基本信息</div>
+            <div class="tab" onclick="showTab('vehicle-models')">车型管理</div>
+            <div class="tab" onclick="showTab('exterior-colors')">外观颜色</div>
+            <div class="tab" onclick="showTab('interior-display')">内饰显示</div>
+            <div class="tab" onclick="showTab('attention-info')">注意事项</div>
+        </div>
+
+        <!-- 基本信息标签页 -->
+        <div id="basic-info" class="tab-content active">
+            <h2>基本信息</h2>
+            <form id="basic-info-form">
+                <div class="form-group">
+                    <label for="page-title">页面标题</label>
+                    <input type="text" id="page-title" value="2025 TOYOTA BZ3X QUOTATION">
+                </div>
+                
+                <div class="form-group">
+                    <label for="page-date">日期</label>
+                    <input type="text" id="page-date" value="2025.9.19">
+                </div>
+                
+                <div class="form-group">
+                    <label for="company-name">公司名称</label>
+                    <input type="text" id="company-name" value="SINO GEAR POWER TECHNOLOGY CO., LTD">
+                </div>
+                
+                <div class="form-group">
+                    <label for="company-address">公司地址</label>
+                    <textarea id="company-address">ROOM 1317, OFFICE FLOOR, BUILDING 1,
+HUANMAO CENTER, HEFEI CITY,
+ANHUI PROVINCE</textarea>
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">保存基本信息</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 车型管理标签页 -->
+        <div id="vehicle-models" class="tab-content">
+            <h2>车型管理</h2>
+            <form id="model-form">
+                <input type="hidden" id="model-id" value="">
+                
+                <div class="form-group">
+                    <label for="model-name">车型名称</label>
+                    <input type="text" id="model-name" placeholder="例如: 2025 430 AIR">
+                </div>
+                
+                <div class="form-group">
+                    <label for="model-energy">能源类型</label>
+                    <input type="text" id="model-energy" placeholder="例如: PURE ELECTRIC">
+                </div>
+                
+                <div class="form-group">
+                    <label for="model-battery">电池信息</label>
+                    <input type="text" id="model-battery" placeholder="例如: LFP BATTERY 50 KWH">
+                </div>
+                
+                <div class="form-group">
+                    <label for="model-cltc">续航里程</label>
+                    <input type="text" id="model-cltc" placeholder="例如: 430KM">
+                </div>
+                
+                <div class="form-group">
+                    <label for="model-price">价格</label>
+                    <input type="text" id="model-price" placeholder="例如: $15,500">
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" id="model-submit" class="btn btn-primary">添加车型</button>
+                    <button type="button" id="model-cancel" class="btn btn-secondary" style="display: none;" onclick="cancelModelEdit()">取消编辑</button>
+                </div>
+            </form>
+            
+            <table class="data-table" id="models-table">
+                <thead>
+                    <tr>
+                        <th>车型名称</th>
+                        <th>能源类型</th>
+                        <th>电池信息</th>
+                        <th>续航里程</th>
+                        <th>价格</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="models-table-body">
+                    <!-- 车型数据将通过JavaScript动态生成 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 外观颜色标签页 -->
+        <div id="exterior-colors" class="tab-content">
+            <h2>外观颜色管理</h2>
+            <form id="color-form">
+                <input type="hidden" id="color-id" value="">
+                
+                <div class="form-group">
+                    <label for="color-name">颜色名称</label>
+                    <input type="text" id="color-name" placeholder="例如: BLACK">
+                </div>
+                
+                <div class="form-group">
+                    <label for="color-image">颜色图片</label>
+                    <div class="image-upload" onclick="document.getElementById('color-image-input').click()">
+                        <p>点击上传图片或拖放图片到此处</p>
+                        <input type="file" id="color-image-input" accept="image/*" style="display: none;">
+                    </div>
+                    <div id="color-image-preview" style="display: none;">
+                        <img id="color-preview-img" src="" alt="预览" class="current-image">
+                    </div>
+                    <input type="hidden" id="color-image" value="">
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" id="color-submit" class="btn btn-primary">添加颜色</button>
+                    <button type="button" id="color-cancel" class="btn btn-secondary" style="display: none;" onclick="cancelColorEdit()">取消编辑</button>
+                </div>
+            </form>
+            
+            <div class="grid-preview" id="colors-preview">
+                <!-- 颜色预览将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <!-- 内饰显示标签页 -->
+        <div id="interior-display" class="tab-content">
+            <h2>内饰显示管理</h2>
+            <div class="form-group">
+                <label for="interior-images-input">上传内饰图片</label>
+                <div class="image-upload" onclick="document.getElementById('interior-images-input').click()">
+                    <p>点击上传图片或拖放图片到此处</p>
+                    <input type="file" id="interior-images-input" accept="image/*" multiple style="display: none;">
+                </div>
+            </div>
+            
+            <div class="current-images" id="interior-images-preview">
+                <!-- 内饰图片预览将通过JavaScript动态生成 -->
+            </div>
+            
+            <div class="button-group">
+                <button type="button" id="save-interior" class="btn btn-primary">保存内饰图片</button>
+            </div>
+        </div>
+
+        <!-- 注意事项标签页 -->
+        <div id="attention-info" class="tab-content">
+            <h2>注意事项管理</h2>
+            <div id="attention-list">
+                <!-- 注意事项将通过JavaScript动态生成 -->
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="new-attention">添加新注意事项</label>
+                <input type="text" id="new-attention" placeholder="输入新的注意事项">
+                <button type="button" id="add-attention" class="btn btn-primary" style="margin-top: 10px;">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // 导入CRUD操作模块
+        import { getDefaultQuoteData, loadData, saveData } from './crud/quote-crud.js';
+        import { showAlert } from './crud/quote-list.js';
+        
+        // 全局变量
+        let quotes = {};
+        let currentQuoteId = null;
+        let currentQuote = null;
+        let uploadedInteriorImages = [];
+        
+        // 获取URL参数
+        function getUrlParams() {
+            const params = {};
+            const urlParams = new URLSearchParams(window.location.search);
+            for (const [key, value] of urlParams) {
+                params[key] = value;
+            }
+            return params;
+        }
+        
+        // 初始化页面
+        function init() {
+            quotes = loadData();
+            const params = getUrlParams();
+            
+            if (params.id) {
+                // 编辑现有Quote
+                currentQuoteId = params.id;
+                currentQuote = quotes[currentQuoteId];
+                if (currentQuote) {
+                    document.getElementById('quote-title').textContent = `编辑报价单: ${currentQuote.name}`;
+                    loadAllData();
+                } else {
+                    showAlert('edit-alert', '未找到指定的报价单', false);
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 2000);
+                }
+            } else {
+                // 创建新Quote
+                document.getElementById('quote-title').textContent = '创建新报价单';
+                // 使用默认数据初始化表单
+                currentQuote = getDefaultQuoteData('新报价单');
+            }
+        }
+        
+        // 加载所有数据
+        function loadAllData() {
+            loadBasicInfo();
+            loadModels();
+            loadExteriorColors();
+            loadInteriorImages();
+            loadAttentionItems();
+        }
+        
+        // 显示指定标签页
+        function showTab(tabId) {
+            // 隐藏所有标签页内容
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有标签的活动状态
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的标签页内容和激活标签
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+        
+        // 基本信息管理
+        function loadBasicInfo() {
+            if (!currentQuote) return;
+            const basicInfo = currentQuote.basicInfo;
+            
+            document.getElementById('page-title').value = basicInfo.pageTitle;
+            document.getElementById('page-date').value = basicInfo.pageDate;
+            document.getElementById('company-name').value = basicInfo.companyName;
+            document.getElementById('company-address').value = basicInfo.companyAddress;
+        }
+
+        document.getElementById('basic-info-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            currentQuote.basicInfo = {
+                pageTitle: document.getElementById('page-title').value,
+                pageDate: document.getElementById('page-date').value,
+                companyName: document.getElementById('company-name').value,
+                companyAddress: document.getElementById('company-address').value
+            };
+            
+            saveCurrentQuote();
+            showAlert('edit-alert', '基本信息已保存');
+        });
+
+        // 车型管理
+        function loadModels() {
+            if (!currentQuote) return;
+            const modelsBody = document.getElementById('models-table-body');
+            modelsBody.innerHTML = '';
+            
+            currentQuote.models.forEach(model => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${model.name}</td>
+                    <td>${model.energy}</td>
+                    <td>${model.battery}</td>
+                    <td>${model.cltc}</td>
+                    <td>${model.price}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="editModel(${model.id})">编辑</button>
+                            <button class="btn btn-danger" onclick="deleteModel(${model.id})">删除</button>
+                        </div>
+                    </td>
+                `;
+                modelsBody.appendChild(row);
+            });
+        }
+
+        function editModel(id) {
+            if (!currentQuote) return;
+            const model = currentQuote.models.find(m => m.id === id);
+            
+            if (model) {
+                document.getElementById('model-id').value = model.id;
+                document.getElementById('model-name').value = model.name;
+                document.getElementById('model-energy').value = model.energy;
+                document.getElementById('model-battery').value = model.battery;
+                document.getElementById('model-cltc').value = model.cltc;
+                document.getElementById('model-price').value = model.price;
+                
+                document.getElementById('model-submit').textContent = '更新车型';
+                document.getElementById('model-cancel').style.display = 'inline-block';
+                
+                // 滚动到表单
+                document.getElementById('model-form').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function deleteModel(id) {
+            if (!currentQuote) return;
+            if (confirm('确定要删除这个车型吗？')) {
+                currentQuote.models = currentQuote.models.filter(m => m.id !== id);
+                saveCurrentQuote();
+                loadModels();
+                showAlert('edit-alert', '车型已删除');
+            }
+        }
+
+        function cancelModelEdit() {
+            document.getElementById('model-form').reset();
+            document.getElementById('model-id').value = '';
+            document.getElementById('model-submit').textContent = '添加车型';
+            document.getElementById('model-cancel').style.display = 'none';
+        }
+
+        document.getElementById('model-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const modelId = document.getElementById('model-id').value;
+            const name = document.getElementById('model-name').value;
+            const energy = document.getElementById('model-energy').value;
+            const battery = document.getElementById('model-battery').value;
+            const cltc = document.getElementById('model-cltc').value;
+            const price = document.getElementById('model-price').value;
+            
+            if (!name || !energy || !battery || !cltc || !price) {
+                showAlert('edit-alert', '请填写所有字段', false);
+                return;
+            }
+            
+            if (modelId) {
+                // 更新现有车型
+                const index = currentQuote.models.findIndex(m => m.id === parseInt(modelId));
+                if (index !== -1) {
+                    currentQuote.models[index] = {
+                        id: parseInt(modelId),
+                        name,
+                        energy,
+                        battery,
+                        cltc,
+                        price
+                    };
+                    showAlert('edit-alert', '车型已更新');
+                }
+            } else {
+                // 添加新车型
+                const newId = currentQuote.models.length > 0 ? Math.max(...currentQuote.models.map(m => m.id)) + 1 : 1;
+                currentQuote.models.push({
+                    id: newId,
+                    name,
+                    energy,
+                    battery,
+                    cltc,
+                    price
+                });
+                showAlert('edit-alert', '车型已添加');
+            }
+            
+            saveCurrentQuote();
+            loadModels();
+            cancelModelEdit();
+        });
+
+        // 外观颜色管理
+        function loadExteriorColors() {
+            if (!currentQuote) return;
+            const colorsPreview = document.getElementById('colors-preview');
+            colorsPreview.innerHTML = '';
+            
+            currentQuote.exteriorColors.forEach(color => {
+                const colorItem = document.createElement('div');
+                colorItem.className = 'preview-card';
+                colorItem.innerHTML = `
+                    <div style="position: relative;">
+                        <img src="${color.image}" alt="${color.name}" class="preview-image">
+                        <div class="color-label">${color.name}</div>
+                        <div class="action-buttons" style="position: absolute; bottom: 10px; right: 10px;">
+                            <button class="btn btn-secondary" onclick="editColor(${color.id})">编辑</button>
+                            <button class="btn btn-danger" onclick="deleteColor(${color.id})">删除</button>
+                        </div>
+                    </div>
+                `;
+                colorsPreview.appendChild(colorItem);
+            });
+        }
+
+        function editColor(id) {
+            if (!currentQuote) return;
+            const color = currentQuote.exteriorColors.find(c => c.id === id);
+            
+            if (color) {
+                document.getElementById('color-id').value = color.id;
+                document.getElementById('color-name').value = color.name;
+                document.getElementById('color-image').value = color.image;
+                
+                const preview = document.getElementById('color-image-preview');
+                const previewImg = document.getElementById('color-preview-img');
+                if (color.image) {
+                    previewImg.src = color.image;
+                    preview.style.display = 'block';
+                }
+                
+                document.getElementById('color-submit').textContent = '更新颜色';
+                document.getElementById('color-cancel').style.display = 'inline-block';
+                
+                // 滚动到表单
+                document.getElementById('color-form').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function deleteColor(id) {
+            if (!currentQuote) return;
+            if (confirm('确定要删除这个颜色吗？')) {
+                currentQuote.exteriorColors = currentQuote.exteriorColors.filter(c => c.id !== id);
+                saveCurrentQuote();
+                loadExteriorColors();
+                showAlert('edit-alert', '颜色已删除');
+            }
+        }
+
+        function cancelColorEdit() {
+            document.getElementById('color-form').reset();
+            document.getElementById('color-id').value = '';
+            document.getElementById('color-image').value = '';
+            document.getElementById('color-image-preview').style.display = 'none';
+            document.getElementById('color-submit').textContent = '添加颜色';
+            document.getElementById('color-cancel').style.display = 'none';
+        }
+
+        // 处理颜色图片上传预览
+        document.getElementById('color-image-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('color-image-preview');
+                    const previewImg = document.getElementById('color-preview-img');
+                    previewImg.src = event.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('color-image').value = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('color-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const colorId = document.getElementById('color-id').value;
+            const name = document.getElementById('color-name').value;
+            const image = document.getElementById('color-image').value;
+            
+            if (!name || !image) {
+                showAlert('edit-alert', '请填写颜色名称并上传图片', false);
+                return;
+            }
+            
+            if (colorId) {
+                // 更新现有颜色
+                const index = currentQuote.exteriorColors.findIndex(c => c.id === parseInt(colorId));
+                if (index !== -1) {
+                    currentQuote.exteriorColors[index] = {
+                        id: parseInt(colorId),
+                        name,
+                        image
+                    };
+                    showAlert('edit-alert', '颜色已更新');
+                }
+            } else {
+                // 添加新颜色
+                const newId = currentQuote.exteriorColors.length > 0 ? Math.max(...currentQuote.exteriorColors.map(c => c.id)) + 1 : 1;
+                currentQuote.exteriorColors.push({
+                    id: newId,
+                    name,
+                    image
+                });
+                showAlert('edit-alert', '颜色已添加');
+            }
+            
+            saveCurrentQuote();
+            loadExteriorColors();
+            cancelColorEdit();
+        });
+
+        // 内饰显示管理
+        function loadInteriorImages() {
+            if (!currentQuote) return;
+            const previewContainer = document.getElementById('interior-images-preview');
+            previewContainer.innerHTML = '';
+            
+            // 使用数据中的图片或上传的临时图片
+            const imagesToDisplay = uploadedInteriorImages.length > 0 ? uploadedInteriorImages : currentQuote.interiorImages;
+            
+            imagesToDisplay.forEach((item, index) => {
+                const imageItem = document.createElement('div');
+                imageItem.className = 'current-image-item';
+                
+                if (item.image) {
+                    imageItem.innerHTML = `
+                        <img src="${item.image}" alt="Interior ${index + 1}" class="current-image">
+                        <div class="remove-image" onclick="removeInteriorImage(${index})">×</div>
+                    `;
+                } else {
+                    imageItem.innerHTML = `
+                        <div class="current-image" style="display: flex; justify-content: center; align-items: center; background-color: #f5f5f5;">
+                            内饰 ${index + 1}
+                        </div>
+                    `;
+                }
+                
+                previewContainer.appendChild(imageItem);
+            });
+        }
+
+        function removeInteriorImage(index) {
+            if (uploadedInteriorImages.length > 0) {
+                uploadedInteriorImages.splice(index, 1);
+            } else if (currentQuote) {
+                currentQuote.interiorImages[index].image = '';
+                saveCurrentQuote();
+            }
+            loadInteriorImages();
+        }
+
+        // 处理内饰图片上传
+        document.getElementById('interior-images-input').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                uploadedInteriorImages = [];
+                
+                Array.from(files).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        uploadedInteriorImages.push({ id: index + 1, image: event.target.result });
+                        if (uploadedInteriorImages.length === files.length) {
+                            loadInteriorImages();
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        });
+
+        document.getElementById('save-interior').addEventListener('click', function() {
+            currentQuote.interiorImages = uploadedInteriorImages.length > 0 ? uploadedInteriorImages : currentQuote.interiorImages;
+            saveCurrentQuote();
+            showAlert('edit-alert', '内饰图片已保存');
+        });
+
+        // 注意事项管理
+        function loadAttentionItems() {
+            if (!currentQuote) return;
+            const attentionList = document.getElementById('attention-list');
+            attentionList.innerHTML = '';
+            
+            currentQuote.attentionItems.forEach((item, index) => {
+                const listItem = document.createElement('div');
+                listItem.style.display = 'flex';
+                listItem.style.alignItems = 'center';
+                listItem.style.marginBottom = '10px';
+                listItem.style.padding = '10px';
+                listItem.style.backgroundColor = 'white';
+                listItem.style.borderRadius = '4px';
+                listItem.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                
+                listItem.innerHTML = `
+                    <div style="flex: 1; padding: 10px; margin-right: 10px;">
+                        <span style="font-weight: bold; margin-right: 10px;">${index + 1}.</span>
+                        ${item}
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteAttention(${index})">删除</button>
+                `;
+                attentionList.appendChild(listItem);
+            });
+        }
+
+        function deleteAttention(index) {
+            if (!currentQuote) return;
+            if (confirm('确定要删除这个注意事项吗？')) {
+                currentQuote.attentionItems.splice(index, 1);
+                saveCurrentQuote();
+                loadAttentionItems();
+                showAlert('edit-alert', '注意事项已删除');
+            }
+        }
+
+        document.getElementById('add-attention').addEventListener('click', function() {
+            const newAttention = document.getElementById('new-attention').value.trim();
+            
+            if (newAttention) {
+                currentQuote.attentionItems.push(newAttention);
+                saveCurrentQuote();
+                loadAttentionItems();
+                document.getElementById('new-attention').value = '';
+                showAlert('edit-alert', '注意事项已添加');
+            } else {
+                showAlert('edit-alert', '请输入注意事项内容', false);
+            }
+        });
+
+        // 保存当前报价单
+        function saveCurrentQuote() {
+            if (!currentQuoteId) {
+                // 创建新Quote
+                currentQuoteId = `quote_${Date.now()}`;
+                quotes[currentQuoteId] = currentQuote;
+            } else {
+                // 更新现有Quote
+                quotes[currentQuoteId] = currentQuote;
+            }
+            saveData(quotes);
+        }
+
+        // 预览报价单
+        function previewQuote() {
+            // 确保先保存当前编辑的数据
+            saveCurrentQuote();
+            
+            // 将当前编辑的报价单数据存储到localStorage
+            localStorage.setItem('previewQuoteData', JSON.stringify(currentQuote));
+            
+            // 直接打开standalone-preview.html页面
+            window.open('standalone-preview.html', '_blank');
+        }
+
+        // 将函数暴露到全局作用域
+        window.showTab = showTab;
+        window.editModel = editModel;
+        window.deleteModel = deleteModel;
+        window.cancelModelEdit = cancelModelEdit;
+        window.editColor = editColor;
+        window.deleteColor = deleteColor;
+        window.cancelColorEdit = cancelColorEdit;
+        window.removeInteriorImage = removeInteriorImage;
+        window.deleteAttention = deleteAttention;
+        window.previewQuote = previewQuote;
+        window.saveCurrentQuote = saveCurrentQuote;
+        window.showAlert = showAlert;
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
