@@ -1,0 +1,372 @@
+import React, { useState, useEffect } from 'react';
+import { getInteriorItems, saveInteriorItems, getSelectedInteriorItems, saveSelectedInteriorItems, updateQuote } from '../../services/adminService';
+
+function InteriorEditor({ quoteId, onInteriorUpdated }) {
+  const [interiorItems, setInteriorItems] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [tempSelectedItems, setTempSelectedItems] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(-1);
+  const [formData, setFormData] = useState({
+    name: '',
+    image: ''
+  });
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    loadInteriorItems();
+    if (quoteId) {
+      loadSelectedItems();
+    }
+  }, [quoteId]);
+
+  const loadInteriorItems = () => {
+    const data = getInteriorItems(quoteId);
+    setInteriorItems(data);
+  };
+
+  const loadSelectedItems = () => {
+    const selected = getSelectedInteriorItems(quoteId);
+    setSelectedItems(selected);
+    setTempSelectedItems([...selected]);
+  };
+
+  const handleSelectItem = (itemId) => {
+    let newTempSelected;
+    if (tempSelectedItems.includes(itemId)) {
+      // 取消选择
+      newTempSelected = tempSelectedItems.filter(id => id !== itemId);
+    } else {
+      // 选择
+      newTempSelected = [...tempSelectedItems, itemId];
+    }
+    setTempSelectedItems(newTempSelected);
+  };
+
+  const handleConfirmAdd = () => {
+    setSelectedItems([...tempSelectedItems]);
+    saveSelectedInteriorItems(tempSelectedItems, quoteId);
+    
+    // 更新报价单对象中的内饰信息
+    if (quoteId && tempSelectedItems.length > 0) {
+      // 获取所有选中的内饰详细信息
+      const allSelectedItems = tempSelectedItems.map(itemId => {
+        const item = interiorItems.find(i => i.id === itemId);
+        return item || null;
+      }).filter(Boolean); // 过滤掉可能的null值
+      
+      // 找到第一个选中的内饰作为主要显示的内饰
+      const firstSelectedItem = allSelectedItems[0];
+      
+      if (firstSelectedItem) {
+        // 更新报价单，包含：
+        // 1. 主要显示的interior和interiorDetails（如果需要）
+        // 2. 所有选中的内饰列表selectedInteriorItems
+        updateQuote(quoteId, {
+          interior: firstSelectedItem.name,
+          interiorDetails: firstSelectedItem,
+          selectedInteriorItems: allSelectedItems // 存储所有选中的内饰
+        });
+      }
+    }
+    
+    setMessage('已成功添加到报价单！');
+    if (onInteriorUpdated) {
+      onInteriorUpdated();
+    }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleCancelSelection = () => {
+    setTempSelectedItems([...selectedItems]);
+    setMessage('已取消当前选择！');
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  // 处理图片文件上传
+  const handleImageUpload = (file) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFormData(prev => ({ ...prev, image: e.target.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // 处理拖拽上传
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.classList.add('drag-over');
+  };
+  
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.classList.remove('drag-over');
+  };
+  
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.classList.remove('drag-over');
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files[0]);
+    }
+  };
+  
+  // 处理文件选择
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageUpload(e.target.files[0]);
+    }
+  };
+
+  const handleAdd = () => {
+    setEditingIndex(-1);
+    setFormData({
+      name: '',
+      image: ''
+    });
+  };
+
+  const handleEdit = (index) => {
+    setEditingIndex(index);
+    setFormData(interiorItems[index]);
+  };
+
+  const handleRemoveItem = (index) => {
+    if (window.confirm('确定要删除这个内饰项吗？')) {
+      const itemId = interiorItems[index].id;
+      const newItems = [...interiorItems];
+      newItems.splice(index, 1);
+      setInteriorItems(newItems);
+      saveInteriorItems(newItems, quoteId);
+      
+      // 同时从已选择列表中移除
+      const newSelected = selectedItems.filter(id => id !== itemId);
+      setSelectedItems(newSelected);
+      saveSelectedInteriorItems(newSelected, quoteId);
+      
+      setMessage('删除成功！');
+      if (onInteriorUpdated) {
+        onInteriorUpdated();
+      }
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.image) {
+      setMessage('请填写必填字段！');
+      return;
+    }
+
+    let newItems;
+    if (editingIndex >= 0) {
+      // 编辑现有内饰项
+      newItems = [...interiorItems];
+      newItems[editingIndex] = { 
+        ...formData,
+        id: newItems[editingIndex].id // 保留原ID
+      };
+    } else {
+      // 添加新内饰项
+      const newId = interiorItems.length > 0 
+        ? Math.max(...interiorItems.map(item => item.id)) + 1 
+        : 1;
+      newItems = [...interiorItems, { 
+        ...formData,
+        id: newId
+      }];
+    }
+
+    setInteriorItems(newItems);
+    saveInteriorItems(newItems, quoteId);
+    setMessage(editingIndex >= 0 ? '更新成功！' : '添加成功！');
+    if (onInteriorUpdated) {
+      onInteriorUpdated();
+    }
+    setEditingIndex(-1);
+    setFormData({ name: '', image: '' });
+    
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleReset = () => {
+    if (window.confirm('确定要重置为默认内饰项吗？')) {
+      // 不传递quoteId时会返回默认内饰项
+      const defaultItems = getInteriorItems();
+      setInteriorItems(defaultItems);
+      saveInteriorItems(defaultItems, quoteId);
+      setMessage('重置成功！');
+      if (onInteriorUpdated) {
+        onInteriorUpdated();
+      }
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
+  return (
+    <div className="editor-container">
+      <h2>内饰管理</h2>
+      {quoteId && <div className="quote-info">当前编辑报价单ID: {quoteId}</div>}
+      
+      {message && (
+        <div className={`message ${message.includes('成功') ? 'success' : 'error'}`}>
+          {message}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="editor-form">
+        <div className="form-row">
+          <div className="form-group">
+            <label>内饰名称 *</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              placeholder="例如：内饰1"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>上传图片 *</label>
+            <div 
+              className="image-upload-container"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById('interior-image-upload').click()}
+            >
+              <input
+                type="file"
+                id="interior-image-upload"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              {formData.image ? (
+                <div className="image-preview">
+                  <img src={formData.image} alt="预览" />
+                  <button 
+                    type="button" 
+                    className="btn btn-sm btn-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFormData(prev => ({ ...prev, image: '' }));
+                    }}
+                  >
+                    移除
+                  </button>
+                </div>
+              ) : (
+                <div className="upload-placeholder">
+                  <p>拖拽图片到这里或点击上传</p>
+                  <p className="upload-hint">支持 JPG, PNG, GIF 等格式</p>
+                </div>
+              )}
+            </div>
+            <small className="help-text">图片将以Base64格式存储</small>
+          </div>
+        </div>
+        
+        <div className="form-actions">
+          <button type="submit" className="btn btn-primary">
+            {editingIndex >= 0 ? '更新' : '添加'}
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-secondary"
+            onClick={() => {
+              setEditingIndex(-1);
+              setFormData({ name: '', image: '' });
+            }}
+          >
+            取消
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-warning"
+            onClick={handleReset}
+          >
+            重置为默认
+          </button>
+        </div>
+      </form>
+
+      <div className="interior-items">
+        <h3>内饰项列表</h3>
+        
+        {tempSelectedItems.length > 0 && (
+          <div className="selection-actions">
+            <button 
+              onClick={handleConfirmAdd}
+              className="btn btn-primary"
+            >
+              确认添加选中的 {tempSelectedItems.length} 个内饰项到报价单
+            </button>
+            <button 
+              onClick={handleCancelSelection}
+              className="btn btn-secondary"
+            >
+              取消选择
+            </button>
+          </div>
+        )}
+        
+        <div className="interior-grid">
+          {interiorItems.map((item, index) => {
+            const isSelected = tempSelectedItems.includes(item.id);
+            return (
+              <div key={index} className={`interior-item ${isSelected ? 'selected' : ''}`}>
+                <div className="selection-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleSelectItem(item.id)}
+                    className="select-checkbox"
+                  />
+                </div>
+                <div className="interior-preview">
+                  <img src={item.image} alt={item.name} onError={(e) => {
+                    e.target.src = '/images/placeholder.png';
+                    e.target.alt = '图片加载失败';
+                  }} />
+                </div>
+                <div className="interior-info">
+                  <span className="interior-name">{item.name}</span>
+                  <div className="interior-actions">
+                    <button 
+                      className="btn btn-sm btn-edit"
+                      onClick={() => handleEdit(index)}
+                    >
+                      编辑
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-delete"
+                      onClick={() => handleRemoveItem(index)}
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default InteriorEditor;
