@@ -3,16 +3,39 @@ import { Link, useParams, useNavigate, useLocation, Outlet } from 'react-router-
 import ModelsEditor from './ModelsEditor';
 import ColorsEditor from './ColorsEditor';
 import InteriorEditor from './InteriorEditor';
-import { getQuoteById } from '../../services/adminService';
+import { getQuoteById, updateQuote } from '../../services/adminService';
 
 function QuoteDetails({ section }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [message, setMessage] = useState('');
+  const [quoteName, setQuoteName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
   
   // 获取当前报价单信息
   const quote = getQuoteById(id);
+  
+  // 初始化报价单名称
+  React.useEffect(() => {
+    if (quote) {
+      setQuoteName(quote.quoteName || quote.customerName);
+    }
+  }, [quote]);
+  
+  // 处理报价单名称更新
+  const handleUpdateQuoteName = () => {
+    if (quoteName.trim()) {
+      const updatedQuote = updateQuote(id, { quoteName: quoteName.trim() });
+      if (updatedQuote) {
+        setMessage('报价单名称已更新！');
+        setIsEditingName(false);
+      } else {
+        setMessage('更新失败，请重试！');
+      }
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
   
   // 处理各编辑器的数据更新
   const handleModelsUpdated = () => {
@@ -88,12 +111,36 @@ function QuoteDetails({ section }) {
       {/* 报价单信息和导航 */}
       <div className="quote-header">
         <div className="quote-info">
-          <h2>编辑报价单</h2>
-          <div className="quote-meta">
-            <span className="quote-name">客户: {quote.customerName}</span>
-            <span className="quote-id">ID: {id}</span>
-          </div>
+        <h2>编辑报价单</h2>
+        <div className="quote-meta">
+          {isEditingName ? (
+            <div className="quote-name-edit">
+              <input
+                type="text"
+                value={quoteName}
+                onChange={(e) => setQuoteName(e.target.value)}
+                className="quote-name-input"
+                placeholder="输入报价单名称"
+                autoFocus
+                onKeyPress={(e) => e.key === 'Enter' && handleUpdateQuoteName()}
+              />
+              <button onClick={handleUpdateQuoteName} className="btn btn-sm btn-primary">保存</button>
+              <button onClick={() => {
+                setIsEditingName(false);
+                setQuoteName(quote.quoteName || quote.customerName);
+              }} className="btn btn-sm btn-secondary">取消</button>
+            </div>
+          ) : (
+            <span className="quote-name">
+              名称: {quote.quoteName || quote.customerName}
+              <button onClick={() => setIsEditingName(true)} className="btn-edit-name">
+                <span role="img" aria-label="编辑">✏️</span>
+              </button>
+            </span>
+          )}
+          <span className="quote-id">ID: {id}</span>
         </div>
+      </div>
         
         <Link to="/admin/quotes" className="btn btn-secondary">
           返回报价单列表

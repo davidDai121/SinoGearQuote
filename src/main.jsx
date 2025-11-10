@@ -12,7 +12,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<App />} />
+        <Route path="/" element={<QuoteViewer />} />
         <Route path="/admin" element={<AdminApp />}>
           <Route index element={<QuotesList />} />
           <Route path="quotes" element={<QuotesList />} />

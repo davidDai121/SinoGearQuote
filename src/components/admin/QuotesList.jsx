@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getSavedQuotes, saveQuote, duplicateQuote, deleteQuote } from '../../services/adminService';
+import { getSavedQuotes, saveQuote, duplicateQuote, deleteQuote, clearAllQuotes } from '../../services/adminService';
 import { getModels, getExteriorColors } from '../../services/adminService';
 
 function QuotesList() {
@@ -9,7 +9,7 @@ function QuotesList() {
   const [colors, setColors] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
-  const [customerName, setCustomerName] = useState('');
+  const [quoteName, setQuoteName] = useState('');
   const [message, setMessage] = useState('');
   const [copiedId, setCopiedId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,34 +71,51 @@ function QuotesList() {
 
   const handleDeleteQuote = (id) => {
     // 直接删除，不需要确认
-    deleteQuote(id);
-    // 立即重新加载数据以更新列表
-    const updatedQuotes = getSavedQuotes();
-    sortAndFilterQuotes(updatedQuotes);
-    setMessage('报价单删除成功！');
+    const success = deleteQuote(id);
+    if (success) {
+      // 立即重新加载数据以更新列表
+      const updatedQuotes = getSavedQuotes();
+      sortAndFilterQuotes(updatedQuotes);
+      setMessage('报价单删除成功！');
+    } else {
+      setMessage('删除报价单失败，请刷新页面重试！');
+    }
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const handleCreateQuote = () => {
-    // 只检查客户名称是否填写
-    if (!customerName.trim()) {
-      setMessage('请输入客户名称！');
-      return;
+  const handleClearAllQuotes = () => {
+    // 显示确认对话框
+    if (window.confirm('确定要删除所有报价单吗？此操作不可恢复！')) {
+      const success = clearAllQuotes();
+      if (success) {
+        loadData();
+        setMessage('所有报价单已成功删除！');
+      } else {
+        setMessage('删除所有报价单失败，请刷新页面重试！');
+      }
+      setTimeout(() => setMessage(''), 3000);
     }
+  };
 
-    // 构建新报价单，车型和颜色可选
+  const handleCreateQuote = () => {
+    // 构建新报价单，所有字段都是可选的
     const newQuote = {
-      customerName: customerName.trim(),
+      customerName: quoteName.trim() || 'Unnamed Quote',
+      // 兼容旧格式
       model: selectedModel || '未选择',
       color: selectedColor || '未选择',
       modelDetails: selectedModel ? models.find(m => m.name === selectedModel) : null,
-      colorDetails: selectedColor ? colors.find(c => c.name === selectedColor) : null
+      colorDetails: selectedColor ? colors.find(c => c.name === selectedColor) : null,
+      // 新格式字段
+      selectedModels: selectedModel ? [models.find(m => m.name === selectedModel)] : [],
+      selectedExteriorColors: selectedColor ? [colors.find(c => c.name === selectedColor)] : [],
+      selectedInteriorItems: []
     };
 
     const savedQuote = saveQuote(newQuote);
     loadData(); // 重新加载数据
     setMessage('报价单创建成功！');
-    setCustomerName('');
+    setQuoteName('');
     setSelectedModel('');
     setSelectedColor('');
     
@@ -140,12 +157,13 @@ function QuotesList() {
         <h3>创建新报价单</h3>
         <div className="form-row">
           <div className="form-group">
-            <label>客户名称 *</label>
+            <label htmlFor="quoteName">报价单名称</label>
             <input
               type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="请输入客户名称（必填）"
+              id="quoteName"
+              value={quoteName}
+              onChange={(e) => setQuoteName(e.target.value)}
+              placeholder="请输入报价单名称（选填）"
             />
           </div>
           <div className="form-group">
@@ -176,13 +194,26 @@ function QuotesList() {
               ))}
             </select>
           </div>
+          <div className="form-group full-width">
+            <p className="helper-text">提示：创建后可以在编辑详情页面添加更多车型、颜色和内饰项目</p>
+          </div>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={handleCreateQuote}
-        >
-          创建报价单
-        </button>
+        <div className="buttons-container">
+          <button 
+            className="btn btn-primary"
+            onClick={handleCreateQuote}
+          >
+            创建报价单
+          </button>
+        </div>
+        <div className="buttons-container" style={{marginTop: '0.5rem'}}>
+          <button 
+            className="btn btn-danger"
+            onClick={handleClearAllQuotes}
+          >
+            清除所有报价单
+          </button>
+        </div>
       </div>
 
       <div className="quotes-list">
@@ -190,12 +221,12 @@ function QuotesList() {
           <h3>报价单管理</h3>
           <div className="search-bar">
             <input
-              type="text"
-              className="search-input"
-              placeholder="搜索报价单（客户名称、车型或颜色）..."
-              value={searchTerm}
-              onChange={handleSearch}
-            />
+                type="text"
+                className="search-input"
+                placeholder="搜索报价单（报价单名称、车型或颜色）..."
+                value={searchTerm}
+                onChange={handleSearch}
+              />
           </div>
         </div>
         
@@ -211,8 +242,8 @@ function QuotesList() {
               <thead>
                 <tr>
                   <th onClick={() => handleSort('customerName')} className="sortable">
-                    客户名称 {sortField === 'customerName' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
+                  报价单名称 {sortField === 'customerName' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                   <th onClick={() => handleSort('model')} className="sortable">
                     车型 {sortField === 'model' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>

@@ -11,8 +11,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     energy: '',
     battery: '',
     cltc: '',
-    prices: [{ type: '标准价格', amount: '' }],
-    image: ''
+    prices: [{ type: '标准价格', amount: '' }]
   });
   const [message, setMessage] = useState('');
 
@@ -25,7 +24,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
 
   const loadModels = () => {
     const data = getModels(quoteId);
-    setModels(data);
+    setModels(Array.isArray(data) ? data : []);
   };
 
   const loadSelectedModels = () => {
@@ -54,7 +53,8 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     if (quoteId && tempSelectedModels.length > 0) {
       // 获取所有选中的车型详细信息
       const allSelectedModels = tempSelectedModels.map(modelId => {
-        const model = models.find(m => m.id === modelId) || models[modelId];
+        const safeModels = models || [];
+        const model = safeModels.find(m => m.id === modelId) || safeModels[modelId];
         return model ? {
           ...model,
           price: model.prices?.[0]?.amount || model.price // 保持向后兼容性
@@ -121,8 +121,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
       energy: '',
       battery: '',
       cltc: '',
-      prices: [{ type: '标准价格', amount: '' }],
-      image: ''
+      prices: [{ type: '标准价格', amount: '' }]
     });
   };
 
@@ -130,9 +129,15 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     setEditingIndex(index);
     // 确保模型数据结构一致，如果没有prices字段，创建一个包含原price的数组
     const model = models[index];
+    // 只提取需要的字段，不包含image
+    const { id, name, energy, battery, cltc, price, prices } = model;
     const formDataToSet = {
-      ...model,
-      prices: model.prices || [{ type: '标准价格', amount: model.price || '' }]
+      id,
+      name,
+      energy,
+      battery,
+      cltc,
+      prices: prices || [{ type: '标准价格', amount: price || '' }]
     };
     setFormData(formDataToSet);
   };
@@ -161,8 +166,8 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.prices?.[0]?.amount) {
-      setMessage('请填写必填字段！');
+    if (!formData.name || !formData.energy || !formData.battery || !formData.cltc || !formData.prices?.[0]?.amount) {
+      setMessage('请填写所有必填字段！');
       return;
     }
 
@@ -243,49 +248,41 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
             />
           </div>
           <div className="form-group">
-            <label>能源类型</label>
+            <label>能源类型 *</label>
             <input
               type="text"
               name="energy"
               value={formData.energy}
               onChange={handleInputChange}
               placeholder="例如：PURE ELECTRIC"
+              required
             />
           </div>
         </div>
         
         <div className="form-row">
           <div className="form-group">
-            <label>电池信息</label>
+            <label>电池信息 *</label>
             <input
               type="text"
               name="battery"
               value={formData.battery}
               onChange={handleInputChange}
               placeholder="例如：LFP BATTERY 50 KWH"
+              required
             />
           </div>
           <div className="form-group">
-            <label>续航里程</label>
+            <label>续航里程 *</label>
             <input
               type="text"
               name="cltc"
               value={formData.cltc}
               onChange={handleInputChange}
               placeholder="例如：430KM"
+              required
             />
           </div>
-        </div>
-        
-        <div className="form-group">
-          <label>车型图片</label>
-          <input
-            type="text"
-            name="image"
-            value={formData.image}
-            onChange={handleInputChange}
-            placeholder="例如：/images/models/model-1.png"
-          />
         </div>
         
         <div className="form-group">
@@ -336,7 +333,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
             className="btn btn-secondary"
             onClick={() => {
               setEditingIndex(-1);
-              setFormData({ name: '', energy: '', battery: '', cltc: '', price: '' });
+              setFormData({ name: '', energy: '', battery: '', cltc: '', prices: [{ type: '标准价格', amount: '' }] });
             }}
           >
             取消
@@ -365,20 +362,19 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
         )}
         
         <table className="data-table">
-          <thead>
-            <tr>
-              <th>添加到报价单</th>
-              <th>型号名称</th>
-              <th>能源类型</th>
-              <th>电池信息</th>
-              <th>续航里程</th>
-              <th>价格信息</th>
-              <th>图片</th>
-              <th>操作</th>
-            </tr>
-          </thead>
+              <thead>
+                <tr>
+                  <th>添加到报价单</th>
+                  <th>型号名称</th>
+                  <th>能源类型</th>
+                  <th>电池信息</th>
+                  <th>续航里程</th>
+                  <th>价格信息</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
           <tbody>
-            {models.map((model, index) => {
+            {(models || []).map((model, index) => {
               const modelId = model.id || index;
               const isSelected = tempSelectedModels.includes(modelId);
               // 确保有prices字段，如果没有则创建一个包含原price的数组
@@ -407,13 +403,6 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
                         </div>
                       ))}
                     </div>
-                  </td>
-                  <td>
-                    {model.image ? (
-                      <div className="image-thumbnail">
-                        <img src={model.image} alt={model.name} width="60" />
-                      </div>
-                    ) : '-'}
                   </td>
                   <td>
                     <button 

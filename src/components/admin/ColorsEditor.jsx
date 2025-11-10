@@ -10,6 +10,22 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     name: '',
     image: ''
   });
+  
+  // 图片展示列数设置
+  const [columns, setColumns] = useState(2); // 默认2列
+  
+  useEffect(() => {
+    // 从报价单中加载列数配置
+    if (quoteId) {
+      const quote = localStorage.getItem(`quote_${quoteId}`);
+      if (quote) {
+        const quoteData = JSON.parse(quote);
+        if (quoteData.colorColumns) {
+          setColumns(quoteData.colorColumns);
+        }
+      }
+    }
+  }, [quoteId]);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -61,10 +77,12 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
         // 更新报价单，包含：
         // 1. 主要显示的color和colorDetails（向后兼容）
         // 2. 所有选中的颜色列表selectedColors
+        // 3. 颜色展示列数配置
         updateQuote(quoteId, {
           color: firstSelectedColor.name,
           colorDetails: firstSelectedColor,
-          selectedColors: allSelectedColors // 存储所有选中的颜色
+          selectedColors: allSelectedColors, // 存储所有选中的颜色
+          colorColumns: columns // 存储颜色展示列数
         });
       }
     }
@@ -213,7 +231,7 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
   };
 
   return (
-    <div className="editor-container">
+    <div className="editor-container" style={{ width: '100%', display: 'block' }}>
       <h2>外观颜色管理</h2>
       {quoteId && <div className="quote-info">当前编辑报价单ID: {quoteId}</div>}
       
@@ -293,33 +311,70 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
           </button>
         </div>
       </form>
+      
+      {/* 图片展示列数配置 */}
+      {quoteId && (
+        <div className="columns-config" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+          <h4>图片展示配置</h4>
+          <div className="form-group">
+            <label>颜色图片显示列数：</label>
+            <select 
+              value={columns} 
+              onChange={(e) => setColumns(parseInt(e.target.value))}
+              className="form-control"
+              style={{ maxWidth: '150px' }}
+            >
+              <option value="1">1列</option>
+              <option value="2">2列</option>
+              <option value="3">3列</option>
+              <option value="4">4列</option>
+              <option value="5">5列</option>
+            </select>
+            <small className="help-text" style={{ display: 'block', marginTop: '5px', color: '#666' }}>设置在客户查看报价单时颜色图片的显示列数</small>
+          </div>
+          <button 
+            onClick={() => {
+              updateQuote(quoteId, { colorColumns: columns });
+              setMessage('列数配置已保存！');
+              setTimeout(() => setMessage(''), 3000);
+            }}
+            className="btn btn-primary"
+            style={{ marginTop: '10px' }}
+          >
+            保存列数配置
+          </button>
+        </div>
+      )}
 
       <div className="colors-grid">
-        <h3>颜色列表</h3>
-        
-        {tempSelectedColors.length > 0 && (
-          <div className="selection-actions">
-            <button 
-              onClick={handleConfirmAdd}
-              className="btn btn-primary"
-            >
-              确认添加选中的 {tempSelectedColors.length} 个颜色到报价单
-            </button>
-            <button 
-              onClick={handleCancelSelection}
-              className="btn btn-secondary"
-            >
-              取消选择
-            </button>
-          </div>
-        )}
-        
-        <div className="colors-container">
+          <h3>颜色列表</h3>
+          
+          {tempSelectedColors.length > 0 && (
+            <div className="selection-actions">
+              <button 
+                onClick={handleConfirmAdd}
+                className="btn btn-primary"
+              >
+                确认添加选中的 {tempSelectedColors.length} 个颜色到报价单
+              </button>
+              <button 
+                onClick={handleCancelSelection}
+                className="btn btn-secondary"
+              >
+                取消选择
+              </button>
+            </div>
+          )}
+          
+          <div className="colors-container">
           {colors.map((color, index) => {
-            const colorId = color.id || index;
-            const isSelected = tempSelectedColors.includes(colorId);
-            return (
-              <div key={index} className={`color-item ${isSelected ? 'selected' : ''}`}>
+              const colorId = color.id || index;
+              const isSelected = tempSelectedColors.includes(colorId);
+              return (
+                <div 
+                  key={index} 
+                  className={`color-item ${isSelected ? 'selected' : ''}`}
+                >
                 <div className="selection-checkbox">
                   <input
                     type="checkbox"

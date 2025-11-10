@@ -7,6 +7,25 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* 集成App内容的样式 */
+.app-content {
+  margin-top: 40px;
+  border-top: 2px solid #eee;
+  padding-top: 20px;
+}
+
+.app-content .content {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* 确保Quote内容和App内容都有合适的间距 */
+.quote-content {
+  margin-bottom: 40px;
+}
+
 /* 加载状态 */
 .loading-container,
 .error-container {
@@ -40,6 +59,20 @@
   border-radius: 12px 12px 0 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   text-align: center;
+}
+
+/* 确保导航栏在QuoteViewer中正常显示 */
+.quote-viewer .navigation {
+  margin-bottom: 30px;
+}
+
+.quote-date {
+  font-size: 16px;
+  color: #666;
+  margin-top: 10px;
+  font-weight: 500;
+  text-align: right;
+  padding-right: 20px;
 }
 
 .quote-header h2 {
@@ -92,6 +125,27 @@
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   margin-top: 1rem;
+}
+
+/* 车型图片样式 */
+.model-image img {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #000000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  margin-bottom: 1rem;
+}
+
+/* 网格布局下的车型图片样式 - 与颜色和内饰图片保持一致 */
+.models-grid .model-image img {
+  max-width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #000000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .model-card h4 {
@@ -170,6 +224,13 @@
   border-radius: 8px;
   border: 1px solid #000000;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.clickable-image:hover {
+  transform: scale(1.03);
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
 .color-name {
@@ -192,8 +253,8 @@
 
 .colors-grid .color-image {
   max-width: 100%;
-  height: 100px;
-  object-fit: cover;
+  height: 200px;
+  object-fit: contain;
 }
 
 /* 内饰样式 */
@@ -228,6 +289,7 @@
   border-radius: 8px;
   border: 1px solid #000000;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
 .interior-name {
@@ -341,6 +403,52 @@
 .copyright {
   font-size: 0.875rem;
   color: #000000;
+}
+
+/* 动态列数的响应式调整 */
+@media (max-width: 768px) {
+  .colors-grid, .interior-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .colors-grid, .interior-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+  }
+}
+
+/* 图片查看器模态框样式 */
+.image-viewer-modal {
+  animation: fadeIn 0.3s ease;
+}
+
+.image-viewer-content img {
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.image-viewer-close {
+  transition: transform 0.2s ease;
+}
+
+.image-viewer-close:hover {
+  transform: scale(1.2);
 }
 
 /* 响应式设计 */

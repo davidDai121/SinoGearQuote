@@ -1,21 +1,56 @@
+// 价格项类型定义
+/**
+ * @typedef {Object} PriceItem
+ * @property {string} type - 价格类型（如：标准价格、促销价格）
+ * @property {string} amount - 价格金额
+ */
+
 // 车辆模型类型定义
 // 注意：这是JavaScript文件，使用注释定义类型结构
 /**
  * @typedef {Object} VehicleModel
+ * @property {number} id - 车型ID
  * @property {string} name - 车型名称
  * @property {string} energy - 能源类型
  * @property {string} battery - 电池信息
  * @property {string} cltc - 续航里程
- * @property {string} price - 价格
+ * @property {Array<PriceItem>} prices - 价格信息数组
  */
 
 // 导出一个示例对象作为类型参考
 export const VehicleModelExample = {
+  id: 1,
   name: '',
   energy: '',
   battery: '',
   cltc: '',
-  price: ''
+  prices: [{ type: '标准价格', amount: '' }],
+};
+
+// 车型选择状态类型定义
+/**
+ * @typedef {Array<number>} SelectedModels
+ */
+
+// 报价单类型定义
+/**
+ * @typedef {Object} Quote
+ * @property {string} id - 报价单ID
+ * @property {string} createdAt - 创建时间
+ * @property {string} customerName - 客户名称
+ * @property {Array<VehicleModel>} selectedModels - 所有选中的车型列表
+ * @property {Array<string>} selectedExteriorColors - 选中的外观颜色ID列表
+ * @property {Array<string>} selectedInteriorItems - 选中的内饰项ID列表
+ */
+
+// 导出报价单示例对象
+export const QuoteExample = {
+  id: '',
+  createdAt: '',
+  customerName: '',
+  selectedModels: [],
+  selectedExteriorColors: [],
+  selectedInteriorItems: []
 };
 
 // 外观颜色类型定义

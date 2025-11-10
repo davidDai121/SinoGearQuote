@@ -234,15 +234,17 @@ export const duplicateQuote = (id) => {
     return null;
   }
   
-  // 创建新的报价单，保留原报价单的信息但生成新的ID和创建时间
+  // 创建新的报价单，保留原报价单的所有信息但生成新的ID和创建时间
+  // 确保复制所有可能的字段，包括selectedModels和selectedColors
   const newQuote = {
+    // 复制所有原始字段
+    ...quoteToDuplicate,
+    // 重新设置ID和创建时间，覆盖可能从展开运算符获取的旧值
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
-    customerName: `${quoteToDuplicate.customerName} (复制)`,
-    model: quoteToDuplicate.model,
-    color: quoteToDuplicate.color,
-    modelDetails: quoteToDuplicate.modelDetails,
-    colorDetails: quoteToDuplicate.colorDetails
+    // 更新名称字段，优先使用quoteName
+    quoteName: quoteToDuplicate.quoteName ? `${quoteToDuplicate.quoteName} (复制)` : undefined,
+    customerName: `${quoteToDuplicate.customerName} (复制)`
   };
   
   quotes.push(newQuote);
@@ -252,10 +254,36 @@ export const duplicateQuote = (id) => {
 
 // 删除报价单
 export const deleteQuote = (id) => {
-  const quotes = getSavedQuotes();
-  const filteredQuotes = quotes.filter(quote => quote.id !== id);
-  setToStorage(STORAGE_KEYS.QUOTES, filteredQuotes);
-  return true;
+  try {
+    // 直接操作localStorage以确保正确性
+    const quotesJson = localStorage.getItem(STORAGE_KEYS.QUOTES);
+    let quotes = quotesJson ? JSON.parse(quotesJson) : [];
+    
+    // 过滤掉要删除的报价单
+    const filteredQuotes = quotes.filter(quote => quote.id !== id);
+    
+    // 强制保存到localStorage
+    localStorage.setItem(STORAGE_KEYS.QUOTES, JSON.stringify(filteredQuotes));
+    
+    // 清除可能的缓存
+    // 有些浏览器会缓存localStorage的值，这里通过设置再获取来刷新缓存
+    const verifyQuotes = JSON.parse(localStorage.getItem(STORAGE_KEYS.QUOTES) || '[]');
+    return verifyQuotes.length === filteredQuotes.length;
+  } catch (error) {
+    console.error('删除报价单失败:', error);
+    return false;
+  }
+};
+
+// 清除所有报价单数据
+export const clearAllQuotes = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.QUOTES);
+    return true;
+  } catch (error) {
+    console.error('清除所有报价单失败:', error);
+    return false;
+  }
 };
 
 // 更新报价单

@@ -10,6 +10,22 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     name: '',
     image: ''
   });
+  
+  // 图片展示列数设置
+  const [columns, setColumns] = useState(2); // 默认2列
+  
+  useEffect(() => {
+    // 从报价单中加载列数配置
+    if (quoteId) {
+      const quote = localStorage.getItem(`quote_${quoteId}`);
+      if (quote) {
+        const quoteData = JSON.parse(quote);
+        if (quoteData.interiorColumns) {
+          setColumns(quoteData.interiorColumns);
+        }
+      }
+    }
+  }, [quoteId]);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -61,10 +77,12 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
         // 更新报价单，包含：
         // 1. 主要显示的interior和interiorDetails（如果需要）
         // 2. 所有选中的内饰列表selectedInteriorItems
+        // 3. 内饰展示列数配置
         updateQuote(quoteId, {
           interior: firstSelectedItem.name,
           interiorDetails: firstSelectedItem,
-          selectedInteriorItems: allSelectedItems // 存储所有选中的内饰
+          selectedInteriorItems: allSelectedItems, // 存储所有选中的内饰
+          interiorColumns: columns // 存储内饰展示列数
         });
       }
     }
@@ -303,6 +321,40 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
           </button>
         </div>
       </form>
+      
+      {/* 图片展示列数配置 */}
+      {quoteId && (
+        <div className="columns-config" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+          <h4>图片展示配置</h4>
+          <div className="form-group">
+            <label>内饰图片显示列数：</label>
+            <select 
+              value={columns} 
+              onChange={(e) => setColumns(parseInt(e.target.value))}
+              className="form-control"
+              style={{ maxWidth: '150px' }}
+            >
+              <option value="1">1列</option>
+              <option value="2">2列</option>
+              <option value="3">3列</option>
+              <option value="4">4列</option>
+              <option value="5">5列</option>
+            </select>
+            <small className="help-text" style={{ display: 'block', marginTop: '5px', color: '#666' }}>设置在客户查看报价单时内饰图片的显示列数</small>
+          </div>
+          <button 
+            onClick={() => {
+              updateQuote(quoteId, { interiorColumns: columns });
+              setMessage('列数配置已保存！');
+              setTimeout(() => setMessage(''), 3000);
+            }}
+            className="btn btn-primary"
+            style={{ marginTop: '10px' }}
+          >
+            保存列数配置
+          </button>
+        </div>
+      )}
 
       <div className="interior-items">
         <h3>内饰项列表</h3>
