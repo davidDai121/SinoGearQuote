@@ -21,6 +21,7 @@ function QuoteViewer() {
       const quoteData = getQuoteById(id);
       if (quoteData) {
         setQuote(quoteData);
+    
       } else {
         setError('未找到该报价单');
       }
@@ -30,25 +31,26 @@ function QuoteViewer() {
     fetchQuote();
   }, [id]);
 
-  // 只在非特定ID时显示加载和错误状态
-  if (id !== '1762766614453') {
-    if (loading) {
-      return (
-        <div className="loading-container">
-          <p>加载中...</p>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="error-container">
-          <p>{error}</p>
-          <a href="/" className="btn btn-primary">返回首页</a>
-        </div>
-      );
-    }
+  // 显示加载状态
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <p>加载中...</p>
+      </div>
+    );
   }
+
+  // 显示错误状态
+  if (error) {
+    return (
+      <div className="error-container">
+        <p>{error}</p>
+        <a href="/" className="btn btn-primary">返回首页</a>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="quote-viewer">
@@ -57,10 +59,10 @@ function QuoteViewer() {
       
       {/* 移除导航栏 */}
       
-      {/* 只为特定ID或有quote数据时显示报价单内容 */}
-      {(id === '1762766614453' || quote) && (
+      {/* 只要有quote数据就显示报价单内容 */}
+      {quote && (
         <main className="quote-content">
-        <h1>{quote?.quoteName || '报价单'}</h1>
+        <h1>{quote?.quoteName}</h1>
         <p className="quote-date">
           DATE: {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' }).replace(/\//g, '.')}
         </p>
@@ -178,8 +180,8 @@ function QuoteViewer() {
           <div className="color-section">
             <h3>Exterior Colors</h3>
             {quote.selectedColors && quote.selectedColors.length > 0 ? (
-              // 显示多个颜色，使用动态列数
-              <div className="colors-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(150px, 1fr))' }}>
+              // 显示多个颜色，使用CSS控制的自适应列数
+              <div className="colors-grid">
                 {quote.selectedColors.filter(color => color !== null && color !== undefined).map((color, index) => (
                   <div key={`${color.id || color.name || index}-${index}`} className="color-display">
                     <img 
@@ -200,7 +202,7 @@ function QuoteViewer() {
               </div>
             ) : (
               // 显示单个颜色（保持向后兼容）
-              <div className="color-display">
+              <div className="color-display single-display">
                 <img 
                   src={quote.colorDetails?.image || ''} 
                   alt={quote.colorDetails?.name || 'Color'} 
@@ -222,27 +224,22 @@ function QuoteViewer() {
           {quote.selectedInteriorItems && quote.selectedInteriorItems.length > 0 && (
             <div className="interior-section">
               <h3>Interior Selection</h3>
-              <div 
-                className="interior-grid" 
-                style={{
-                  gridTemplateColumns: `repeat(${quote.interiorColumns || 2}, minmax(150px, 1fr))`
-                }}
-              >
+              <div className="interior-grid">
                 {quote.selectedInteriorItems.filter(item => item !== null && item !== undefined).map((item, index) => (
                   <div key={`${item.id || item.name}-${index}`} className="interior-display">
                     <img 
-                  src={item.image || ''} 
-                  alt={item.name || 'Interior'} 
-                  className="interior-image clickable-image"
-                  onClick={() => {
-                    if (item.image) {
-                      setSelectedImage(item.image);
-                      setSelectedImageName(item.name || 'Interior');
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <p className="interior-name">{item.name}</p>
+                      src={item.image || ''} 
+                      alt={item.name || 'Interior'} 
+                      className="interior-image clickable-image"
+                      onClick={() => {
+                        if (item.image) {
+                          setSelectedImage(item.image);
+                          setSelectedImageName(item.name || 'Interior');
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <p className="interior-name">{item.name}</p>
                   </div>
                 ))}
               </div>
@@ -252,7 +249,7 @@ function QuoteViewer() {
           {!quote.selectedInteriorItems && quote.interiorDetails && (
             <div className="interior-section">
               <h3>Interior Selection</h3>
-              <div className="interior-display">
+              <div className="interior-display single-display">
                 <img 
                   src={quote.interiorDetails?.image || ''} 
                   alt={quote.interiorDetails?.name || 'Interior'} 
@@ -271,8 +268,9 @@ function QuoteViewer() {
           )}
         </div>
 
+        {/* 页脚显示 - 从admin中获取设置的值 */}
         <div className="quote-footer">
-          <p>Thank you for choosing our products! Please feel free to contact us if you have any questions.</p>
+          <p>{quote?.footerText || 'Thank you for choosing our products! Please feel free to contact us if you have any questions.'}</p>
         </div>
       </main>
       )}

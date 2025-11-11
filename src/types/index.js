@@ -37,7 +37,7 @@ export const VehicleModelExample = {
  * @typedef {Object} Quote
  * @property {string} id - 报价单ID
  * @property {string} createdAt - 创建时间
- * @property {string} customerName - 客户名称
+ * @property {string} quoteName - 报价单名称
  * @property {Array<VehicleModel>} selectedModels - 所有选中的车型列表
  * @property {Array<string>} selectedExteriorColors - 选中的外观颜色ID列表
  * @property {Array<string>} selectedInteriorItems - 选中的内饰项ID列表
@@ -47,7 +47,7 @@ export const VehicleModelExample = {
 export const QuoteExample = {
   id: '',
   createdAt: '',
-  customerName: '',
+  quoteName: '',
   selectedModels: [],
   selectedExteriorColors: [],
   selectedInteriorItems: []

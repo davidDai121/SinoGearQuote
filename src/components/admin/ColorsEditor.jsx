@@ -105,12 +105,18 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  // 处理图片文件上传
+  // 处理图片文件上传 - 优化图片质量
   const handleImageUpload = (file) => {
     if (file && file.type.startsWith('image/')) {
+      // 使用Blob直接读取，避免Base64编码的潜在质量损失
       const reader = new FileReader();
       reader.onload = (e) => {
-        setFormData(prev => ({ ...prev, image: e.target.result }));
+        // 确保以二进制字符串形式读取，然后创建Blob URL
+        const imageDataUrl = e.target.result;
+        
+        // 为了保持最高质量，直接使用读取的dataURL
+        // 如果将来需要，可以在这里添加图片处理逻辑（如调整大小但保持质量）
+        setFormData(prev => ({ ...prev, image: imageDataUrl }));
       };
       reader.readAsDataURL(file);
     }

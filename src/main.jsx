@@ -21,6 +21,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="models" element={<QuoteDetails section="models" />} />
             <Route path="colors" element={<QuoteDetails section="colors" />} />
             <Route path="interior" element={<QuoteDetails section="interior" />} />
+            <Route path="footer" element={<QuoteDetails section="footer" />} />
           </Route>
         </Route>
         <Route path="/quote/:id" element={<QuoteViewer />} />

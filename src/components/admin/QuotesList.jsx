@@ -30,13 +30,22 @@ function QuotesList() {
   const sortAndFilterQuotes = (allQuotes) => {
     // 先筛选
     let filteredQuotes = allQuotes.filter(quote => 
-      quote.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ((quote.quoteName) || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       quote.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
       quote.color.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
     // 再排序
     const sortedQuotes = filteredQuotes.sort((a, b) => {
+      // 特殊处理quoteName排序
+      if (sortField === 'quoteName') {
+        const aValue = (a.quoteName) || '';
+        const bValue = (b.quoteName) || '';
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      }
+      // 其他字段排序
       if (a[sortField] < b[sortField]) return sortDirection === 'asc' ? -1 : 1;
       if (a[sortField] > b[sortField]) return sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -100,7 +109,7 @@ function QuotesList() {
   const handleCreateQuote = () => {
     // 构建新报价单，所有字段都是可选的
     const newQuote = {
-      customerName: quoteName.trim() || 'Unnamed Quote',
+      quoteName: quoteName.trim() || 'Unnamed Quote',
       // 兼容旧格式
       model: selectedModel || '未选择',
       color: selectedColor || '未选择',
@@ -241,9 +250,9 @@ function QuotesList() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th onClick={() => handleSort('customerName')} className="sortable">
-                  报价单名称 {sortField === 'customerName' && (sortDirection === 'asc' ? '↑' : '↓')}
-                </th>
+                  <th onClick={() => handleSort('quoteName')} className="sortable">
+                    报价单名称 {sortField === 'quoteName' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th onClick={() => handleSort('model')} className="sortable">
                     车型 {sortField === 'model' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
@@ -259,7 +268,7 @@ function QuotesList() {
               <tbody>
           {quotes.map((quote, index) => (
             <tr key={`${quote.id}-${index}`}>
-              <td>{quote.customerName}</td>
+              <td>{quote.quoteName || '未命名报价单'}</td>
               <td>{quote.model}</td>
               <td>{quote.color}</td>
               <td>{formatDate(quote.createdAt)}</td>

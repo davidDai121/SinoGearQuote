@@ -242,9 +242,8 @@ export const duplicateQuote = (id) => {
     // 重新设置ID和创建时间，覆盖可能从展开运算符获取的旧值
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
-    // 更新名称字段，优先使用quoteName
-    quoteName: quoteToDuplicate.quoteName ? `${quoteToDuplicate.quoteName} (复制)` : undefined,
-    customerName: `${quoteToDuplicate.customerName} (复制)`
+    // 更新名称字段，统一使用quoteName
+    quoteName: quoteToDuplicate.quoteName ? `${quoteToDuplicate.quoteName} (复制)` : undefined
   };
   
   quotes.push(newQuote);

@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate, useLocation, Outlet } from 'react-router-
 import ModelsEditor from './ModelsEditor';
 import ColorsEditor from './ColorsEditor';
 import InteriorEditor from './InteriorEditor';
+import FooterEditor from './FooterEditor';
 import { getQuoteById, updateQuote } from '../../services/adminService';
 
 function QuoteDetails({ section }) {
@@ -19,7 +20,7 @@ function QuoteDetails({ section }) {
   // 初始化报价单名称
   React.useEffect(() => {
     if (quote) {
-      setQuoteName(quote.quoteName || quote.customerName);
+      setQuoteName(quote.quoteName);
     }
   }, [quote]);
   
@@ -50,6 +51,11 @@ function QuoteDetails({ section }) {
   
   const handleInteriorUpdated = () => {
     setMessage('内饰数据已更新！');
+    setTimeout(() => setMessage(''), 3000);
+  };
+  
+  const handleFooterUpdated = () => {
+    setMessage('页脚数据已更新！');
     setTimeout(() => setMessage(''), 3000);
   };
   
@@ -101,6 +107,13 @@ function QuoteDetails({ section }) {
             onInteriorUpdated={handleInteriorUpdated} 
           />
         );
+      case 'footer':
+        return (
+          <FooterEditor 
+            quoteId={id} 
+            onFooterUpdated={handleFooterUpdated} 
+          />
+        );
       default:
         return <Outlet />;
     }
@@ -127,12 +140,12 @@ function QuoteDetails({ section }) {
               <button onClick={handleUpdateQuoteName} className="btn btn-sm btn-primary">保存</button>
               <button onClick={() => {
                 setIsEditingName(false);
-                setQuoteName(quote.quoteName || quote.customerName);
+                setQuoteName(quote.quoteName);
               }} className="btn btn-sm btn-secondary">取消</button>
             </div>
           ) : (
             <span className="quote-name">
-              名称: {quote.quoteName || quote.customerName}
+              名称: {quote.quoteName || '未命名报价单'}
               <button onClick={() => setIsEditingName(true)} className="btn-edit-name">
                 <span role="img" aria-label="编辑">✏️</span>
               </button>
@@ -172,6 +185,12 @@ function QuoteDetails({ section }) {
           className={`config-nav-item ${currentSection === 'interior' ? 'active' : ''}`}
         >
           内饰管理
+        </Link>
+        <Link 
+          to={`/admin/quotes/${id}/footer`}
+          className={`config-nav-item ${currentSection === 'footer' ? 'active' : ''}`}
+        >
+          页脚管理
         </Link>
       </div>
       
