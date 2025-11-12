@@ -58,39 +58,84 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     setTempSelectedItems(newTempSelected);
   };
 
-  const handleConfirmAdd = () => {
-    setSelectedItems([...tempSelectedItems]);
-    saveSelectedInteriorItems(tempSelectedItems, quoteId);
-    
-    // 更新报价单对象中的内饰信息
-    if (quoteId && tempSelectedItems.length > 0) {
-      // 获取所有选中的内饰详细信息
-      const allSelectedItems = tempSelectedItems.map(itemId => {
-        const item = interiorItems.find(i => i.id === itemId);
-        return item || null;
-      }).filter(Boolean); // 过滤掉可能的null值
+  // 辅助函数：更新报价单中的内饰图片信息
+  const updateQuoteWithInteriorImages = (itemsToUse = interiorItems) => {
+    try {
+      // 获取所有选中内饰的图片信息
+      const interiorImages = [];
+      const allInteriorInfo = [];
       
-      // 找到第一个选中的内饰作为主要显示的内饰
-      const firstSelectedItem = allSelectedItems[0];
+      tempSelectedItems.forEach(itemId => {
+        const item = itemsToUse.find(i => i.id === itemId);
+        
+        // 如果找到内饰且有图片，添加到图片数组
+        if (item && item.image) {
+          interiorImages.push({
+            name: item.name,
+            url: item.image
+          });
+          allInteriorInfo.push(item);
+        }
+      });
       
-      if (firstSelectedItem) {
-        // 更新报价单，包含：
-        // 1. 主要显示的interior和interiorDetails（如果需要）
-        // 2. 所有选中的内饰列表selectedInteriorItems
-        // 3. 内饰展示列数配置
-        updateQuote(quoteId, {
-          interior: firstSelectedItem.name,
-          interiorDetails: firstSelectedItem,
-          selectedInteriorItems: allSelectedItems, // 存储所有选中的内饰
-          interiorColumns: columns // 存储内饰展示列数
-        });
+      if (interiorImages.length === 0) {
+        console.warn('选中的内饰项没有有效的图片信息');
+        return false;
       }
+      
+      // 找到第一个选中的内饰作为主要显示的内饰（保持向后兼容）
+      const firstSelectedItem = allInteriorInfo[0];
+      
+      // 更新报价单，直接存储内饰图片
+      const updatedQuote = updateQuote(quoteId, {
+        // 向后兼容字段
+        interior: firstSelectedItem?.name || '',
+        interiorDetails: firstSelectedItem || null,
+        // 新增直接存储的图片信息
+        interiorImages: interiorImages, // 直接存储内饰图片列表
+        interiorColumns: columns // 存储内饰展示列数
+      });
+      
+      return updatedQuote !== null;
+    } catch (error) {
+      console.error('更新报价单内饰图片失败:', error);
+      return false;
+    }
+  };
+
+  const handleConfirmAdd = () => {
+    // 直接获取并存储选中的内饰图片
+    if (!quoteId) {
+      setMessage('错误：未找到报价单ID！');
+      return;
     }
     
-    setMessage('已成功添加到报价单！');
-    if (onInteriorUpdated) {
-      onInteriorUpdated();
+    if (tempSelectedItems.length === 0) {
+      setMessage('请先选择内饰项！');
+      return;
     }
+    
+    try {
+      const updateResult = updateQuoteWithInteriorImages();
+      
+      if (!updateResult) {
+        setMessage('更新报价单失败，请检查选中的内饰项！');
+        return;
+      }
+      
+      // 更新状态
+      setSelectedItems([...tempSelectedItems]);
+      // 仍然保存selectedItems以保持UI一致性，但主要逻辑已改为直接存储图片
+      
+      setMessage('已成功添加到报价单！');
+      if (onInteriorUpdated) {
+        onInteriorUpdated();
+      }
+    } catch (error) {
+      setMessage('添加到报价单时发生错误！');
+      console.error('添加内饰到报价单失败:', error);
+    }
+    
     setTimeout(() => setMessage(''), 3000);
   };
 
@@ -105,18 +150,86 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  // 处理图片文件上传 - 优化图片质量
+  // 处理图片文件上传 - 保持高质量图片，仅进行必要的尺寸调整
   const handleImageUpload = (file) => {
     if (file && file.type.startsWith('image/')) {
-      // 使用Blob直接读取，避免Base64编码的潜在质量损失
+      // 记录文件信息
+      console.log(`Uploading image: ${file.name}, size: ${Math.round(file.size / 1024)}KB`);
+      
+      // 首先检查文件大小，如果非常小（小于500KB），直接使用原始数据
+      if (file.size < 500 * 1024) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setFormData(prev => ({ ...prev, image: e.target.result }));
+          console.log('Small image used without compression for best quality');
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+      
+      // 对于较大文件，保持高质量的同时进行最小化处理
       const reader = new FileReader();
       reader.onload = (e) => {
-        // 确保以二进制字符串形式读取，然后创建Blob URL
-        const imageDataUrl = e.target.result;
-        
-        // 为了保持最高质量，直接使用读取的dataURL
-        // 如果将来需要，可以在这里添加图片处理逻辑（如调整大小但保持质量）
-        setFormData(prev => ({ ...prev, image: imageDataUrl }));
+        try {
+          // 创建图片对象以获取尺寸信息
+          const img = new Image();
+          img.onload = () => {
+            try {
+              // 创建canvas进行处理
+              const canvas = document.createElement('canvas');
+              
+              // 设置更高的最大尺寸，保持更好的质量
+              const maxWidth = 1600; // 提高最大宽度以保持清晰度
+              const maxHeight = 1600; // 提高最大高度以保持清晰度
+              let width = img.width;
+              let height = img.height;
+              
+              // 仅在图片尺寸过大时才进行缩放
+              if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = width * ratio;
+                height = height * ratio;
+                console.log(`Image resized from ${img.width}x${img.height} to ${width}x${height}`);
+              }
+              
+              // 设置canvas尺寸
+              canvas.width = width;
+              canvas.height = height;
+              
+              // 绘制图片到canvas，保持高质量
+              const ctx = canvas.getContext('2d');
+              // 使用高质量渲染设置
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high'; // 使用高质量平滑
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              // 使用更高的质量参数，保持图片清晰度
+              const quality = 0.9; // 提高质量参数至0.9
+              const imageDataUrl = canvas.toDataURL(file.type, quality);
+              
+              // 记录处理后的大小但不再进一步压缩
+              const dataSize = new Blob([imageDataUrl]).size;
+              console.log(`Processed image size: ${Math.round(dataSize / 1024)}KB (quality: 0.9)`);
+              
+              // 直接使用高质量图片数据，不再根据大小进一步压缩
+              setFormData(prev => ({ ...prev, image: imageDataUrl }));
+            } catch (canvasError) {
+              console.error('图片压缩失败:', canvasError);
+              // 压缩失败时，回退到使用原始图片数据
+              setFormData(prev => ({ ...prev, image: e.target.result }));
+            }
+          };
+          img.onerror = (err) => {
+            console.error('图片加载失败:', err);
+            // 图片加载失败时，使用原始数据
+            setFormData(prev => ({ ...prev, image: e.target.result }));
+          };
+          img.src = e.target.result;
+        } catch (error) {
+          console.error('图片处理过程中发生错误:', error);
+          // 发生任何错误时，使用原始数据
+          setFormData(prev => ({ ...prev, image: e.target.result }));
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -176,7 +289,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
       // 同时从已选择列表中移除
       const newSelected = selectedItems.filter(id => id !== itemId);
       setSelectedItems(newSelected);
-      saveSelectedInteriorItems(newSelected, quoteId);
+      // 保存更新后的选中列表以保持UI一致性
       
       setMessage('删除成功！');
       if (onInteriorUpdated) {
@@ -214,7 +327,18 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     }
 
     setInteriorItems(newItems);
-    saveInteriorItems(newItems, quoteId);
+    const saveResult = saveInteriorItems(newItems, quoteId);
+    
+    if (!saveResult) {
+      setMessage('保存内饰数据失败！');
+      return;
+    }
+    
+    // 如果当前有选中的内饰项且存在报价单，自动更新报价单中的内饰图片信息
+    if (quoteId && tempSelectedItems.length > 0) {
+      updateQuoteWithInteriorImages(newItems);
+    }
+    
     setMessage(editingIndex >= 0 ? '更新成功！' : '添加成功！');
     if (onInteriorUpdated) {
       onInteriorUpdated();

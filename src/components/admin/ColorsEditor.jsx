@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getExteriorColors, saveExteriorColors, getSelectedExteriorColors, saveSelectedExteriorColors, updateQuote } from '../../services/adminService';
+import { getExteriorColors, saveExteriorColors, updateQuote } from '../../services/adminService';
 
 function ColorsEditor({ quoteId, onColorsUpdated }) {
   const [colors, setColors] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
-  const [tempSelectedColors, setTempSelectedColors] = useState([]);
   const [editingIndex, setEditingIndex] = useState(-1);
   const [formData, setFormData] = useState({
     name: '',
@@ -30,9 +29,6 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
 
   useEffect(() => {
     loadColors();
-    if (quoteId) {
-      loadSelectedColors();
-    }
   }, [quoteId]);
 
   const loadColors = () => {
@@ -40,63 +36,98 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     setColors(data);
   };
 
-  const loadSelectedColors = () => {
-    const selected = getSelectedExteriorColors(quoteId);
-    setSelectedColors(selected);
-    setTempSelectedColors([...selected]);
-  };
-
   const handleSelectColor = (colorId) => {
-    let newTempSelected;
-    if (tempSelectedColors.includes(colorId)) {
+    let newSelected;
+    if (selectedColors.includes(colorId)) {
       // 取消选择
-      newTempSelected = tempSelectedColors.filter(id => id !== colorId);
+      newSelected = selectedColors.filter(id => id !== colorId);
     } else {
       // 选择
-      newTempSelected = [...tempSelectedColors, colorId];
+      newSelected = [...selectedColors, colorId];
     }
-    setTempSelectedColors(newTempSelected);
+    setSelectedColors(newSelected);
   };
 
   const handleConfirmAdd = () => {
-    setSelectedColors([...tempSelectedColors]);
-    saveSelectedExteriorColors(tempSelectedColors, quoteId);
+    // 直接获取并存储选中的外观图片
+    if (!quoteId) {
+      setMessage('错误：未找到报价单ID！');
+      return;
+    }
     
-    // 更新报价单对象中的颜色信息
-    if (quoteId && tempSelectedColors.length > 0) {
-      // 获取所有选中的颜色详细信息
-      const allSelectedColors = tempSelectedColors.map(colorId => {
-        const color = colors.find(c => c.id === colorId) || colors[colorId];
-        return color || null;
-      }).filter(Boolean); // 过滤掉可能的null值
+    if (selectedColors.length === 0) {
+      setMessage('请先选择颜色！');
+      return;
+    }
+    
+    try {
+      // 获取所有选中颜色的图片信息
+      const exteriorImages = [];
+      const allColorInfo = [];
       
-      // 找到第一个选中的颜色作为主要显示的颜色
-      const firstSelectedColor = allSelectedColors[0];
+      selectedColors.forEach(colorId => {
+        // 查找颜色信息的多种方式
+        let color;
+        
+        // 首先尝试通过id字段查找
+        color = colors.find(c => c.id === colorId);
+        
+        // 如果找不到，再尝试通过数组索引查找
+        if (!color && typeof colorId === 'number' && colorId >= 0 && colorId < colors.length) {
+          color = colors[colorId];
+        }
+        
+        // 如果还找不到，再尝试通过字符串索引查找
+        if (!color && typeof colorId === 'string') {
+          const index = parseInt(colorId);
+          if (!isNaN(index) && index >= 0 && index < colors.length) {
+            color = colors[index];
+          }
+        }
+        
+        // 如果找到颜色且有图片，添加到图片数组
+        if (color && color.image) {
+          exteriorImages.push({
+            name: color.name,
+            url: color.image
+          });
+          allColorInfo.push(color);
+        }
+      });
       
-      if (firstSelectedColor) {
-        // 更新报价单，包含：
-        // 1. 主要显示的color和colorDetails（向后兼容）
-        // 2. 所有选中的颜色列表selectedColors
-        // 3. 颜色展示列数配置
-        updateQuote(quoteId, {
-          color: firstSelectedColor.name,
-          colorDetails: firstSelectedColor,
-          selectedColors: allSelectedColors, // 存储所有选中的颜色
-          colorColumns: columns // 存储颜色展示列数
-        });
+      if (exteriorImages.length === 0) {
+        setMessage('错误：选中的颜色没有有效的图片！');
+        return;
       }
+      
+      // 找到第一个选中的颜色作为主要显示的颜色（保持向后兼容）
+      const firstSelectedColor = allColorInfo[0];
+      
+      // 更新报价单，直接存储外观图片
+      const updatedQuote = updateQuote(quoteId, {
+        // 向后兼容字段
+        color: firstSelectedColor?.name || '',
+        colorDetails: firstSelectedColor || null,
+        // 新增直接存储的图片信息
+        exteriorImages: exteriorImages, // 直接存储外观图片列表
+        colorColumns: columns // 存储颜色展示列数
+      });
+      
+      if (!updatedQuote) {
+        setMessage('更新报价单失败，请检查报价单ID是否正确！');
+        console.error('更新报价单失败，报价单ID:', quoteId);
+        return;
+      }
+      
+      setMessage('已成功添加到报价单！');
+      if (onColorsUpdated) {
+        onColorsUpdated();
+      }
+    } catch (error) {
+      setMessage('添加到报价单时发生错误！');
+      console.error('添加颜色到报价单失败:', error);
     }
     
-    setMessage('已成功添加到报价单！');
-    if (onColorsUpdated) {
-      onColorsUpdated();
-    }
-    setTimeout(() => setMessage(''), 3000);
-  };
-
-  const handleCancelSelection = () => {
-    setTempSelectedColors([...selectedColors]);
-    setMessage('已取消当前选择！');
     setTimeout(() => setMessage(''), 3000);
   };
 
@@ -105,18 +136,71 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  // 处理图片文件上传 - 优化图片质量
+  // 处理图片文件上传 - 压缩图片以避免localStorage空间限制
   const handleImageUpload = (file) => {
     if (file && file.type.startsWith('image/')) {
-      // 使用Blob直接读取，避免Base64编码的潜在质量损失
+      // 使用canvas压缩图片以减少Base64字符串大小
+      // 平衡图片质量和存储需求
       const reader = new FileReader();
       reader.onload = (e) => {
-        // 确保以二进制字符串形式读取，然后创建Blob URL
-        const imageDataUrl = e.target.result;
-        
-        // 为了保持最高质量，直接使用读取的dataURL
-        // 如果将来需要，可以在这里添加图片处理逻辑（如调整大小但保持质量）
-        setFormData(prev => ({ ...prev, image: imageDataUrl }));
+        try {
+          // 创建图片对象以获取尺寸信息
+          const img = new Image();
+          img.onload = () => {
+            try {
+              // 创建canvas进行压缩
+              const canvas = document.createElement('canvas');
+              
+              // 设置合理的最大尺寸，避免超大图片
+              const maxWidth = 1200;
+              const maxHeight = 1200;
+              let width = img.width;
+              let height = img.height;
+              
+              // 计算缩放比例
+              if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = width * ratio;
+                height = height * ratio;
+              }
+              
+              // 设置canvas尺寸
+              canvas.width = width;
+              canvas.height = height;
+              
+              // 绘制图片到canvas
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              // 压缩图片，quality参数(0.7-0.8)提供良好的质量/大小平衡
+              const quality = 0.75;
+              const imageDataUrl = canvas.toDataURL(file.type, quality);
+              
+              // 检查生成的dataURL大小
+              const dataSize = new Blob([imageDataUrl]).size;
+              if (dataSize > 2 * 1024 * 1024) { // 如果超过2MB，进一步压缩
+                const compressedUrl = canvas.toDataURL(file.type, 0.6);
+                setFormData(prev => ({ ...prev, image: compressedUrl }));
+              } else {
+                setFormData(prev => ({ ...prev, image: imageDataUrl }));
+              }
+            } catch (canvasError) {
+              console.error('图片压缩失败:', canvasError);
+              // 压缩失败时，回退到使用原始图片数据
+              setFormData(prev => ({ ...prev, image: e.target.result }));
+            }
+          };
+          img.onerror = (err) => {
+            console.error('图片加载失败:', err);
+            // 图片加载失败时，使用原始数据
+            setFormData(prev => ({ ...prev, image: e.target.result }));
+          };
+          img.src = e.target.result;
+        } catch (error) {
+          console.error('图片处理过程中发生错误:', error);
+          // 发生任何错误时，使用原始数据
+          setFormData(prev => ({ ...prev, image: e.target.result }));
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -176,7 +260,6 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
       // 同时从已选择列表中移除
       const newSelected = selectedColors.filter(id => id !== colorId);
       setSelectedColors(newSelected);
-      saveSelectedExteriorColors(newSelected, quoteId);
       
       setMessage('删除成功！');
       if (onColorsUpdated) {
@@ -208,18 +291,62 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     }
 
     setColors(newColors);
-    saveExteriorColors(newColors, quoteId);
+    const saveResult = saveExteriorColors(newColors, quoteId);
     
-    // 更新报价单对象中的colorDetails（如果该颜色是选中的）
-    if (quoteId) {
-      const updatedColor = editingIndex >= 0 ? newColors[editingIndex] : newColors[newColors.length - 1];
-      const isSelected = tempSelectedColors.includes(updatedColor.id);
+    if (!saveResult) {
+      setMessage('保存颜色数据失败！');
+      return;
+    }
+    
+    // 更新报价单中的颜色图片信息
+    if (quoteId && selectedColors.length > 0) {
+      // 获取所有选中颜色的图片信息
+      const exteriorImages = [];
+      const allColorInfo = [];
       
-      if (isSelected) {
-        updateQuote(quoteId, {
-          color: updatedColor.name,
-          colorDetails: updatedColor
-        });
+      selectedColors.forEach(colorId => {
+        let color;
+        
+        // 多种方式查找颜色信息，确保找到对应颜色
+        color = newColors.find(c => c.id === colorId);
+        
+        if (!color && typeof colorId === 'number') {
+          // 如果是数字ID，尝试通过索引查找
+          if (colorId >= 0 && colorId < newColors.length) {
+            color = newColors[colorId];
+          }
+        }
+        
+        if (!color && typeof colorId === 'string') {
+          // 如果是字符串ID，尝试转换为数字索引
+          const numId = parseInt(colorId);
+          if (!isNaN(numId) && numId >= 0 && numId < newColors.length) {
+            color = newColors[numId];
+          }
+        }
+        
+        if (color && color.image) {
+          exteriorImages.push({
+            name: color.name,
+            url: color.image
+          });
+          allColorInfo.push(color);
+        }
+      });
+      
+      // 找到第一个选中的颜色作为主要显示的颜色
+      const firstSelectedColor = allColorInfo[0];
+      
+      // 更新报价单
+      const updatedQuote = updateQuote(quoteId, {
+        color: firstSelectedColor?.name || '',
+        colorDetails: firstSelectedColor || null,
+        exteriorImages: exteriorImages,
+        colorColumns: columns
+      });
+      
+      if (!updatedQuote) {
+        console.warn('更新报价单失败，可能找不到指定的报价单ID');
       }
     }
     
@@ -355,19 +482,13 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
       <div className="colors-grid">
           <h3>颜色列表</h3>
           
-          {tempSelectedColors.length > 0 && (
+          {selectedColors.length > 0 && (
             <div className="selection-actions">
               <button 
                 onClick={handleConfirmAdd}
                 className="btn btn-primary"
               >
-                确认添加选中的 {tempSelectedColors.length} 个颜色到报价单
-              </button>
-              <button 
-                onClick={handleCancelSelection}
-                className="btn btn-secondary"
-              >
-                取消选择
+                确认添加选中的 {selectedColors.length} 个颜色到报价单
               </button>
             </div>
           )}
@@ -375,7 +496,7 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
           <div className="colors-container">
           {colors.map((color, index) => {
               const colorId = color.id || index;
-              const isSelected = tempSelectedColors.includes(colorId);
+              const isSelected = selectedColors.includes(colorId);
               return (
                 <div 
                   key={index} 

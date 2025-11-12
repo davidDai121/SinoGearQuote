@@ -179,24 +179,45 @@ function QuoteViewer() {
 
           <div className="color-section">
             <h3>Exterior Colors</h3>
-            {quote.selectedColors && quote.selectedColors.length > 0 ? (
+            {quote.exteriorImages && quote.exteriorImages.length > 0 ? (
+              // 优先使用新的直接存储的图片数据
+              <div className="colors-grid">
+                {quote.exteriorImages.map((image, index) => (
+                  <div key={`exterior-${index}`} className="color-display">
+                    <img 
+                      src={image.url || ''} 
+                      alt={image.name || 'Color'} 
+                      className="color-image clickable-image"
+                      onClick={() => {
+                        if (image.url) {
+                          setSelectedImage(image.url);
+                          setSelectedImageName(image.name || 'Color');
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <p className="color-name">{image.name}</p>
+                  </div>
+                ))}
+              </div>
+            ) : quote.selectedColors && quote.selectedColors.length > 0 ? (
               // 显示多个颜色，使用CSS控制的自适应列数
               <div className="colors-grid">
                 {quote.selectedColors.filter(color => color !== null && color !== undefined).map((color, index) => (
                   <div key={`${color.id || color.name || index}-${index}`} className="color-display">
                     <img 
-                  src={color.image || ''} 
-                  alt={color.name || 'Color'} 
-                  className="color-image clickable-image"
-                  onClick={() => {
-                    if (color.image) {
-                      setSelectedImage(color.image);
-                      setSelectedImageName(color.name || 'Color');
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <p className="color-name">{color.name}</p>
+                      src={color.image || ''} 
+                      alt={color.name || 'Color'} 
+                      className="color-image clickable-image"
+                      onClick={() => {
+                        if (color.image) {
+                          setSelectedImage(color.image);
+                          setSelectedImageName(color.name || 'Color');
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <p className="color-name">{color.name}</p>
                   </div>
                 ))}
               </div>
@@ -215,13 +236,37 @@ function QuoteViewer() {
                   }}
                   style={{ cursor: 'pointer' }}
                 />
-                <p className="color-name">{quote.colorDetails.name}</p>
+                <p className="color-name">{quote.colorDetails?.name || ''}</p>
               </div>
             )}
           </div>
           
           {/* 内饰部分 */}
-          {quote.selectedInteriorItems && quote.selectedInteriorItems.length > 0 && (
+          {quote.interiorImages && quote.interiorImages.length > 0 ? (
+            // 优先使用新的直接存储的图片数据
+            <div className="interior-section">
+              <h3>Interior Selection</h3>
+              <div className="interior-grid">
+                {quote.interiorImages.map((image, index) => (
+                  <div key={`interior-${index}`} className="interior-display">
+                    <img 
+                      src={image.url || ''} 
+                      alt={image.name || 'Interior'} 
+                      className="interior-image clickable-image"
+                      onClick={() => {
+                        if (image.url) {
+                          setSelectedImage(image.url);
+                          setSelectedImageName(image.name || 'Interior');
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <p className="interior-name">{image.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : quote.selectedInteriorItems && quote.selectedInteriorItems.length > 0 ? (
             <div className="interior-section">
               <h3>Interior Selection</h3>
               <div className="interior-grid">
@@ -244,9 +289,8 @@ function QuoteViewer() {
                 ))}
               </div>
             </div>
-          )}
-          {/* 单个内饰显示（向后兼容）*/}
-          {!quote.selectedInteriorItems && quote.interiorDetails && (
+          ) : quote.interiorDetails ? (
+            // 单个内饰显示（向后兼容）
             <div className="interior-section">
               <h3>Interior Selection</h3>
               <div className="interior-display single-display">
@@ -265,7 +309,7 @@ function QuoteViewer() {
                 <p className="interior-name">{quote.interiorDetails.name}</p>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* 页脚显示 - 从admin中获取设置的值 */}
