@@ -13,77 +13,10 @@ const getQuoteSpecificKey = (baseKey, quoteId) => {
   return `${baseKey}_${quoteId}`;
 };
 
-// 默认数据
-const DEFAULT_MODELS = [
-  {
-    name: '2025 430 AIR',
-    energy: 'PURE ELECTRIC',
-    battery: 'LFP BATTERY 50 KWH',
-    cltc: '430KM',
-    price: '$15,500'
-  },
-  {
-    name: '2025 430 AIR+',
-    energy: 'PURE ELECTRIC',
-    battery: 'LFP BATTERY 50 KWH',
-    cltc: '430KM',
-    price: '$16,800'
-  },
-  {
-    name: '2025 520 PRO',
-    energy: 'PURE ELECTRIC',
-    battery: 'LFP BATTERY 58.3 KWH',
-    cltc: '520KM',
-    price: '$18,000'
-  },
-  {
-    name: '2025 520 PRO+',
-    energy: 'PURE ELECTRIC',
-    battery: 'LFP BATTERY 58.3 KWH',
-    cltc: '520KM',
-    price: '$19,300'
-  },
-  {
-    name: '2025 520 PRO LIDAR EDITION',
-    energy: 'PURE ELECTRIC',
-    battery: 'LFP BATTERY 58.3 KWH',
-    cltc: '520KM',
-    price: '$20,600'
-  },
-  {
-    name: '2025 610 MAX',
-    energy: 'PURE ELECTRIC',
-    battery: 'LFP BATTERY 67.9 KWH',
-    cltc: '610KM',
-    price: '$21,800'
-  },
-  {
-    name: '2025 520 PRO+ LIDAR EDITION',
-    energy: 'PURE ELECTRIC',
-    battery: 'LFP BATTERY 58.3 KWH',
-    cltc: '520KM',
-    price: '$21,800'
-  }
-];
-
-const DEFAULT_EXTERIOR_COLORS = [
-  { name: 'BLACK', image: '/images/exterior/black.png' },
-  { name: 'GREY', image: '/images/exterior/grey.png' },
-  { name: 'PINK', image: '/images/exterior/pink.png' },
-  { name: 'GOLDEN', image: '/images/exterior/golden.png' },
-  { name: 'SILVERY', image: '/images/exterior/silvery.png' },
-  { name: 'SILVERY-BLACK', image: '/images/exterior/silvery-black.png' },
-  { name: 'WHITE-1', image: '/images/exterior/white-1.png' },
-  { name: 'WHITE-2', image: '/images/exterior/white-2.png' },
-  { name: 'WHITE-BLACK', image: '/images/exterior/white-black.png' }
-];
-
-const DEFAULT_INTERIOR_ITEMS = [
-  { id: 1, name: '内饰1', image: '/images/interior/interior-1.png' },
-  { id: 2, name: '内饰2', image: '/images/interior/interior-2.png' },
-  { id: 3, name: '内饰3', image: '/images/interior/interior-3.png' },
-  { id: 4, name: '内饰4', image: '/images/interior/interior-4.png' }
-];
+// 默认数据 - 已清空所有模拟数据
+const DEFAULT_MODELS = [];
+const DEFAULT_EXTERIOR_COLORS = [];
+const DEFAULT_INTERIOR_ITEMS = [];
 
 // 通用存储函数 - 增强错误处理
 const setToStorage = (key, data) => {
