@@ -24,6 +24,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="footer" element={<QuoteDetails section="footer" />} />
           </Route>
         </Route>
+        {/* 添加/admin前缀的路由作为别名，确保兼容性 */}
+        <Route path="/admin" element={<AdminApp />}>
+          <Route index element={<QuotesList />} />
+          <Route path="quotes" element={<QuotesList />} />
+          <Route path="quotes/:id" element={<QuoteDetails />}>
+            <Route index element={<div className="quote-details-placeholder">请选择一个配置项进行管理</div>} />
+            <Route path="models" element={<QuoteDetails section="models" />} />
+            <Route path="colors" element={<QuoteDetails section="colors" />} />
+            <Route path="interior" element={<QuoteDetails section="interior" />} />
+            <Route path="footer" element={<QuoteDetails section="footer" />} />
+          </Route>
+        </Route>
         <Route path="/quote/:id" element={<QuoteViewer />} />
       </Routes>
     </BrowserRouter>
