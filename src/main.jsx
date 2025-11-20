@@ -12,8 +12,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<QuoteViewer />} />
-        <Route path="/admin" element={<AdminApp />}>
+        {/* 默认路由直接进入admin主页 */}
+        <Route path="/" element={<AdminApp />}>
           <Route index element={<QuotesList />} />
           <Route path="quotes" element={<QuotesList />} />
           <Route path="quotes/:id" element={<QuoteDetails />}>
