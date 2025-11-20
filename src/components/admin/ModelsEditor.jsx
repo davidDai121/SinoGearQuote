@@ -184,41 +184,51 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
       newModels = [...models, { ...formData, id: newId }];
     }
 
-    setModels(newModels);
-    saveModels(newModels, quoteId);
-    
-    // 更新报价单对象中的modelDetails（如果该车型是选中的）
-    if (quoteId) {
-      const updatedModel = editingIndex >= 0 ? newModels[editingIndex] : newModels[newModels.length - 1];
-      const isSelected = tempSelectedModels.includes(updatedModel.id);
+    // 保存模型数据并检查结果
+    const saveSuccess = saveModels(newModels, quoteId);
+    if (saveSuccess) {
+      setModels(newModels);
       
-      if (isSelected) {
-        // 为了保持向后兼容性，确保有price字段
-        const modelForQuote = {
-          ...updatedModel,
-          price: updatedModel.prices?.[0]?.amount
-        };
+      // 更新报价单对象中的modelDetails（如果该车型是选中的）
+      if (quoteId) {
+        const updatedModel = editingIndex >= 0 ? newModels[editingIndex] : newModels[newModels.length - 1];
+        const isSelected = tempSelectedModels.includes(updatedModel.id);
         
-        updateQuote(quoteId, {
-          model: updatedModel.name,
-          modelDetails: modelForQuote
-        });
+        if (isSelected) {
+          // 为了保持向后兼容性，确保有price字段
+          const modelForQuote = {
+            ...updatedModel,
+            price: updatedModel.prices?.[0]?.amount
+          };
+          
+          const updateSuccess = updateQuote(quoteId, {
+            model: updatedModel.name,
+            modelDetails: modelForQuote
+          });
+          
+          if (!updateSuccess) {
+            console.warn('更新报价单失败');
+          }
+        }
       }
+      
+      setMessage(editingIndex >= 0 ? '更新成功！' : '添加成功！');
+      if (onModelsUpdated) {
+        onModelsUpdated();
+      }
+      setEditingIndex(-1);
+      setFormData({
+        name: '',
+        energy: '',
+        battery: '',
+        cltc: '',
+        prices: [{ type: '标准价格', amount: '' }],
+        image: ''
+      });
+    } else {
+      setMessage('保存失败！可能是存储空间不足。');
+      console.error('保存车型数据失败');
     }
-    
-    setMessage(editingIndex >= 0 ? '更新成功！' : '添加成功！');
-    if (onModelsUpdated) {
-      onModelsUpdated();
-    }
-    setEditingIndex(-1);
-    setFormData({
-      name: '',
-      energy: '',
-      battery: '',
-      cltc: '',
-      prices: [{ type: '标准价格', amount: '' }],
-      image: ''
-    });
     
     setTimeout(() => setMessage(''), 3000);
   };

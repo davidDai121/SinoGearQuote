@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import ModelsEditor from './ModelsEditor';
 import ColorsEditor from './ColorsEditor';
@@ -13,16 +13,16 @@ function QuoteDetails({ section }) {
   const [message, setMessage] = useState('');
   const [quoteName, setQuoteName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
+  const [quote, setQuote] = useState(null);
   
   // 获取当前报价单信息
-  const quote = getQuoteById(id);
-  
-  // 初始化报价单名称
-  React.useEffect(() => {
-    if (quote) {
-      setQuoteName(quote.quoteName);
+  useEffect(() => {
+    const fetchedQuote = getQuoteById(id);
+    setQuote(fetchedQuote);
+    if (fetchedQuote) {
+      setQuoteName(fetchedQuote.quoteName);
     }
-  }, [quote]);
+  }, [id]);
   
   // 处理报价单名称更新
   const handleUpdateQuoteName = () => {
