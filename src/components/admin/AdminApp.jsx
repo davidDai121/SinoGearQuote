@@ -10,7 +10,7 @@ function AdminApp() {
   // 移除测试数据初始化代码
 
   // 检查当前是否在报价详情页面
-  const isQuoteDetailPage = location.pathname.includes('/admin/quotes/');
+  const isQuoteDetailPage = location.pathname.includes('/quotes/');
 
   return (
     <div className="admin-app">
@@ -22,7 +22,7 @@ function AdminApp() {
             <li 
               className={!isQuoteDetailPage ? 'active' : ''}
             >
-              <Link to="/admin/quotes">报价单列表</Link>
+              <Link to="/quotes">报价单列表</Link>
             </li>
           </ul>
           
