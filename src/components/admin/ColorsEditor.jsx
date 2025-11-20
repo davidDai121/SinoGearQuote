@@ -16,12 +16,11 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
   useEffect(() => {
     // 从报价单中加载列数配置
     if (quoteId) {
-      const quote = localStorage.getItem(`quote_${quoteId}`);
-      if (quote) {
-        const quoteData = JSON.parse(quote);
-        if (quoteData.colorColumns) {
-          setColumns(quoteData.colorColumns);
-        }
+      // 使用adminService中的服务函数获取报价单数据
+      const quotes = JSON.parse(localStorage.getItem('savedQuotes') || '[]');
+      const quote = quotes.find(q => q.id === quoteId);
+      if (quote && quote.colorColumns) {
+        setColumns(quote.colorColumns);
       }
     }
   }, [quoteId]);

@@ -17,12 +17,11 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
   useEffect(() => {
     // 从报价单中加载列数配置
     if (quoteId) {
-      const quote = localStorage.getItem(`quote_${quoteId}`);
-      if (quote) {
-        const quoteData = JSON.parse(quote);
-        if (quoteData.interiorColumns) {
-          setColumns(quoteData.interiorColumns);
-        }
+      // 使用adminService中的服务函数获取报价单数据
+      const quotes = JSON.parse(localStorage.getItem('savedQuotes') || '[]');
+      const quote = quotes.find(q => q.id === quoteId);
+      if (quote && quote.interiorColumns) {
+        setColumns(quote.interiorColumns);
       }
     }
   }, [quoteId]);
