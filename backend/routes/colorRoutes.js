@@ -18,22 +18,13 @@ const upload = multer({ storage });
 
 // 获取所有颜色
 router.get('/', async (req, res) => {
+  if (!req.dbConnected) {
+    return res.status(503).json({ message: '数据库服务暂时不可用，请稍后再试' });
+  }
   try {
-    console.log('接收到获取颜色请求，使用模拟数据:', req.useMockData);
-    
-    // 如果使用模拟数据
-    if (req.useMockData || !req.dbConnected) {
-      const mockColors = req.app.locals.mockColors;
-      console.log('返回模拟颜色数据，数量:', mockColors.length);
-      return res.json(mockColors);
-    }
-    
-    // 否则从数据库获取
     const colors = await Color.find();
-    console.log('从数据库成功获取颜色数据，数量:', colors.length);
     res.json(colors);
   } catch (error) {
-    console.error('获取颜色数据失败:', error.message, error.stack);
     res.status(500).json({ message: '获取颜色数据失败: ' + error.message });
   }
 });
@@ -46,11 +37,11 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
   
   try {
-    const { name, quoteName, price } = req.body;
+    const { name, quoteName, price, image } = req.body;
     const newColor = new Color({
       name: name || quoteName, // 支持name或quoteName字段
       price: Number(price) || 0,
-      image: req.file ? `uploads/colors/${req.file.filename}` : ''
+      image: req.file ? `uploads/colors/${req.file.filename}` : (image || '')
     });
     await newColor.save();
     res.status(201).json(newColor);
@@ -67,12 +58,14 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
   
   try {
-    const { name, quoteName, price } = req.body;
+    const { name, quoteName, price, image } = req.body;
     const updateData = { name: name || quoteName, price: Number(price) || 0 }; // 支持name或quoteName字段
     
     // 如果有新图片，则更新图片路径
     if (req.file) {
       updateData.image = `uploads/colors/${req.file.filename}`;
+    } else if (typeof image !== 'undefined') {
+      updateData.image = image;
     }
     
     const updatedColor = await Color.findByIdAndUpdate(

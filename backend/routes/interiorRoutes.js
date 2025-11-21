@@ -18,22 +18,13 @@ const upload = multer({ storage });
 
 // 获取所有内饰
 router.get('/', async (req, res) => {
+  if (!req.dbConnected) {
+    return res.status(503).json({ message: '数据库服务暂时不可用，请稍后再试' });
+  }
   try {
-    console.log('接收到获取内饰请求，使用模拟数据:', req.useMockData);
-    
-    // 如果使用模拟数据
-    if (req.useMockData || !req.dbConnected) {
-      const mockInteriors = req.app.locals.mockInteriors;
-      console.log('返回模拟内饰数据，数量:', mockInteriors.length);
-      return res.json(mockInteriors);
-    }
-    
-    // 否则从数据库获取
     const interiors = await Interior.find();
-    console.log('从数据库成功获取内饰数据，数量:', interiors.length);
     res.json(interiors);
   } catch (error) {
-    console.error('获取内饰数据失败:', error.message, error.stack);
     res.status(500).json({ message: '获取内饰数据失败: ' + error.message });
   }
 });
@@ -46,11 +37,11 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
   
   try {
-    const { name, quoteName, price } = req.body;
+    const { name, quoteName, price, image } = req.body;
     const newInterior = new Interior({
       name: name || quoteName, // 支持name或quoteName字段
       price: Number(price) || 0,
-      image: req.file ? `uploads/interiors/${req.file.filename}` : ''
+      image: req.file ? `uploads/interiors/${req.file.filename}` : (image || '')
     });
     await newInterior.save();
     res.status(201).json(newInterior);
@@ -67,12 +58,14 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
   
   try {
-    const { name, quoteName, price } = req.body;
+    const { name, quoteName, price, image } = req.body;
     const updateData = { name: name || quoteName, price: Number(price) || 0 }; // 支持name或quoteName字段
     
     // 如果有新图片，则更新图片路径
     if (req.file) {
       updateData.image = `uploads/interiors/${req.file.filename}`;
+    } else if (typeof image !== 'undefined') {
+      updateData.image = image;
     }
     
     const updatedInterior = await Interior.findByIdAndUpdate(

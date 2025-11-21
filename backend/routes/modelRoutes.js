@@ -18,22 +18,13 @@ const upload = multer({ storage });
 
 // 获取所有车型数据
 router.get('/', async (req, res) => {
+  if (!req.dbConnected) {
+    return res.status(503).json({ message: '数据库服务暂时不可用，请稍后再试' });
+  }
   try {
-    console.log('接收到获取车型请求，数据库连接状态:', req.dbConnected, '使用模拟数据:', req.useMockData);
-    
-    // 如果使用模拟数据
-    if (req.useMockData || !req.dbConnected) {
-      const mockModels = req.app.locals.mockModels;
-      console.log('返回模拟车型数据，数量:', mockModels.length);
-      return res.json(mockModels);
-    }
-    
-    // 否则从数据库获取
     const models = await VehicleModel.find();
-    console.log('从数据库成功获取车型数据，数量:', models.length);
     res.json(models);
   } catch (error) {
-    console.error('获取车型数据失败:', error.message, error.stack);
     res.status(500).json({ message: '获取车型数据失败: ' + error.message });
   }
 });
@@ -46,11 +37,11 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
   
   try {
-    const { name, quoteName, price } = req.body;
+    const { name, quoteName, price, image } = req.body;
     const newModel = new VehicleModel({
       name: name || quoteName, // 支持name或quoteName字段
       price: Number(price),
-      image: req.file ? `uploads/models/${req.file.filename}` : ''
+      image: req.file ? `uploads/models/${req.file.filename}` : (image || '')
     });
     await newModel.save();
     res.status(201).json(newModel);
@@ -67,12 +58,14 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
   
   try {
-    const { name, quoteName, price } = req.body;
+    const { name, quoteName, price, image } = req.body;
     const updateData = { name: name || quoteName, price: Number(price) }; // 支持name或quoteName字段
     
     // 如果有新图片，则更新图片路径
     if (req.file) {
       updateData.image = `uploads/models/${req.file.filename}`;
+    } else if (typeof image !== 'undefined') {
+      updateData.image = image;
     }
     
     const updatedModel = await VehicleModel.findByIdAndUpdate(

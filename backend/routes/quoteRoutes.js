@@ -51,7 +51,11 @@ router.post('/', async (req, res) => {
   }
   
   try {
-    const { name, quoteName, modelIds, colorIds, interiorIds, footerText } = req.body;
+    let { name, quoteName, modelIds, colorIds, interiorIds, footerText } = req.body;
+    // 兼容前端可能传递的字段名（models/colors/interiors）
+    if (!modelIds && Array.isArray(req.body.models)) modelIds = req.body.models;
+    if (!colorIds && Array.isArray(req.body.colors)) colorIds = req.body.colors;
+    if (!interiorIds && Array.isArray(req.body.interiors)) interiorIds = req.body.interiors;
     
     // 计算总价
     let totalPrice = 0;
@@ -111,7 +115,11 @@ router.put('/:id', async (req, res) => {
   }
   
   try {
-    const { name, quoteName, modelIds, colorIds, interiorIds, footerText } = req.body;
+    let { name, quoteName, modelIds, colorIds, interiorIds, footerText } = req.body;
+    // 兼容前端可能传递的字段名（models/colors/interiors）
+    if (!modelIds && Array.isArray(req.body.models)) modelIds = req.body.models;
+    if (!colorIds && Array.isArray(req.body.colors)) colorIds = req.body.colors;
+    if (!interiorIds && Array.isArray(req.body.interiors)) interiorIds = req.body.interiors;
     
     // 计算总价
     let totalPrice = 0;
@@ -248,15 +256,15 @@ router.post('/:id/reset', async (req, res) => {
       return res.status(404).json({ message: '报价单不存在' });
     }
     
-    // 重置报价单数据为默认值
+    // 重置报价单数据为默认值，仅使用Schema中定义的字段
     const defaultData = {
       name: quote.name || '默认报价单',
-      model: null,
-      color: null,
-      interior: null,
-      price: 0,
-      exteriorImages: [],
-      interiorImages: []
+      models: [],
+      colors: [],
+      interiors: [],
+      footerText: '',
+      totalPrice: 0,
+      updatedAt: Date.now()
     };
     
     const updatedQuote = await Quote.findByIdAndUpdate(
