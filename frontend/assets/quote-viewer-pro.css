@@ -1,0 +1,32 @@
+.quote-pro{--brand-primary:#e31b23;--brand-accent:#e31b23;--brand-dark:#0b0b0b;--brand-light:#ffffff;--brand-border:#e5e7eb;--radius:12px;--shadow-1:0 8px 24px rgba(20,30,60,.06);--shadow-2:0 12px 32px rgba(20,30,60,.08);min-height:100vh;background:#fff;color:#0b0b0b}
+.pro-header{border-bottom:1px solid var(--brand-border);padding:16px 0}
+.pro-brand{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1100px;margin:0 auto;padding:0 24px}
+.pro-logo{height:40px}
+.pro-meta{flex:1}
+.pro-title{margin:0;font-size:22px;font-weight:700;color:#0b0b0b}
+.pro-date{font-size:14px;color:#6b7280}
+.pro-total{display:flex;flex-direction:column;align-items:flex-end}
+.pro-total-label{font-size:12px;color:#6b7280}
+.pro-total-value{font-size:20px;font-weight:700;color:var(--brand-accent)}
+.pro-content{max-width:1100px;margin:24px auto;padding:0 24px;display:flex;flex-direction:column;gap:24px}
+.pro-section{background:#fff;border:1px solid var(--brand-border);border-radius:var(--radius);box-shadow:var(--shadow-1);padding:16px}
+.pro-section-title{font-size:18px;font-weight:600;color:#111827;margin-bottom:12px}
+.pro-grid{display:grid;gap:16px}
+.pro-grid.models{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.pro-grid.colors{grid-template-columns:repeat(2,1fr)}
+.pro-grid.interiors{grid-template-columns:repeat(2,1fr)}
+.pro-card{border:1px solid var(--brand-border);border-radius:var(--radius);background:#fff;box-shadow:var(--shadow-1);overflow:hidden;transition:transform .2s ease,box-shadow .2s ease}
+.pro-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2)}
+.pro-image{width:100%;aspect-ratio:4/3;background:#f3f4f6;display:flex;align-items:center;justify-content:center}
+.pro-image img{width:100%;height:100%;object-fit:contain}
+.pro-card-body{padding:12px}
+.pro-card-title{font-size:16px;font-weight:600;color:#0b0b0b}
+.pro-card-title.small{font-size:14px}
+.pro-spec{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.pro-spec .row{display:flex;gap:8px}
+.pro-spec .label{color:#6b7280;min-width:120px}
+.pro-spec .value{color:#111827;font-weight:500}
+.pro-price{margin-top:10px;padding-top:10px;border-top:1px solid var(--brand-border);color:var(--brand-accent);font-weight:700}
+.pro-footer-card{background:#0b0b0b;color:#e5e7eb;border-radius:var(--radius);padding:16px}
+.pro-footer-text{font-size:14px}
+.pro-footer{text-align:center;color:#6b7280;padding:24px}

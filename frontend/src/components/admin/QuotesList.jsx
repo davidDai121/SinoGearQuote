@@ -306,14 +306,14 @@ function QuotesList() {
               </thead>
               <tbody>
           {quotes.map((quote, index) => (
-            <tr key={`${quote.id}-${index}`}>
+            <tr key={`${(quote._id || quote.id)}-${index}`}>
               <td>{quote.quoteName || '未命名报价单'}</td>
               <td>{quote.model}</td>
               <td>{quote.color}</td>
               <td>{formatDate(quote.createdAt)}</td>
               <td className="action-buttons">
                     <Link 
-                      to={`/quote/${quote.id}`} 
+                      to={`/quote/${(quote._id || quote.id)}`} 
                       target="_blank"
                       className="btn btn-sm btn-view"
                       title="预览报价单"
@@ -321,7 +321,15 @@ function QuotesList() {
                       预览
                     </Link>
                     <Link 
-                      to={`/admin/quotes/${quote.id}`} 
+                      to={`/quote-pro.html?id=${(quote._id || quote.id)}`} 
+                      target="_blank"
+                      className="btn btn-sm btn-view"
+                      title="新版预览"
+                    >
+                      新版预览
+                    </Link>
+                    <Link 
+                      to={`/admin/quotes/${(quote._id || quote.id)}`} 
                       className="btn btn-sm btn-edit"
                       title="编辑报价单详情"
                     >
@@ -329,28 +337,28 @@ function QuotesList() {
                     </Link>
                     <button 
                       className={`btn btn-sm btn-copy ${copiedId === quote.id ? 'copied' : ''}`}
-                      onClick={() => handleCopyLink(quote.id)}
+                      onClick={() => handleCopyLink(quote._id || quote.id)}
                       title="复制访问链接"
                     >
-                      {copiedId === quote.id ? '已复制' : '复制链接'}
+                      {copiedId === (quote._id || quote.id) ? '已复制' : '复制链接'}
                     </button>
                     <button 
                       className="btn btn-sm btn-duplicate"
-                      onClick={() => handleDuplicateQuote(quote.id)}
+                      onClick={() => handleDuplicateQuote(quote._id || quote.id)}
                       title="复制报价单"
                     >
                       复制
                     </button>
                     <button 
                       className="btn btn-sm btn-delete"
-                      onClick={() => handleDeleteQuote(quote.id)}
+                      onClick={() => handleDeleteQuote(quote._id || quote.id)}
                       title="删除报价单"
                     >
                       删除
                     </button>
-                  </td>
-                  </tr>
-                ))}
+               </td>
+              </tr>
+            ))}
               </tbody>
             </table>
           </div>

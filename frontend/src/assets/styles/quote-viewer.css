@@ -5,6 +5,18 @@
   flex-direction: column;
   background-color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --brand-primary: #e31b23;
+  --brand-accent: #e31b23;
+  --brand-dark: #0b0b0b;
+  --brand-light: #ffffff;
+  --brand-border: #e5e7eb;
+  --ink-1: #0b1220;
+  --ink-2: #111827;
+  --ink-3: #374151;
+  --ink-4: #6b7280;
+  --radius: 12px;
+  --shadow-1: 0 8px 24px rgba(20,30,60,.06);
+  --shadow-2: 0 12px 32px rgba(20,30,60,.08);
 }
 
 /* 集成App内容的样式 */
@@ -47,18 +59,21 @@
 /* 报价单内容 */
 .quote-content {
   flex: 1;
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  max-width: 1100px;
+  margin: 32px auto;
+  padding: 24px;
   width: 100%;
+  background: #fff;
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
 }
 
 .quote-header {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px 12px 0 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  text-align: center;
+  background: transparent;
+  padding: 16px 0 8px 0;
+  border-bottom: 1px solid var(--brand-border);
+  text-align: left;
 }
 
 /* 确保导航栏在QuoteViewer中正常显示 */
@@ -67,12 +82,11 @@
 }
 
 .quote-date {
-  font-size: 16px;
-  color: #666;
-  margin-top: 10px;
+  font-size: 14px;
+  color: var(--ink-4);
+  margin-top: 8px;
   font-weight: 500;
   text-align: right;
-  padding-right: 20px;
 }
 
 .quote-header h2 {
@@ -103,20 +117,23 @@
 }
 
 .model-section h3 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #000000;
-  font-size: 1.5rem;
-  font-weight: 500;
-  border-bottom: 2px solid #000000;
-  padding-bottom: 0.5rem;
+  margin: 0 0 16px 0;
+  color: var(--ink-2);
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .model-card {
   background: #ffffff;
-  border-radius: 8px;
-  padding: 1.5rem;
-  border: 1px solid #000000;
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--brand-border);
+  box-shadow: var(--shadow-1);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.model-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
 }
 
 /* 多车型网格布局 */
@@ -132,17 +149,12 @@
   width: 100%;
   max-width: 400px;
   height: auto;
-  border-radius: 8px;
-  border: 1px solid #000000;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  margin-bottom: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--brand-border);
+  box-shadow: var(--shadow-1);
+  margin-bottom: 12px;
   object-fit: contain;
-  image-rendering: auto;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
-  background-color: #f9f9f9;
+  background-color: var(--brand-light);
 }
 
 /* 网格布局下的车型图片样式 - 与颜色和内饰图片保持一致 */
@@ -156,16 +168,16 @@
 }
 
 .model-card h4 {
-  margin: 0 0 1rem 0;
-  color: #000000;
-  font-size: 1.3rem;
+  margin: 0 0 12px 0;
+  color: var(--ink-1);
+  font-size: 18px;
   font-weight: 600;
 }
 
 .model-info {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .info-item {
@@ -176,27 +188,27 @@
 
 .info-item .label {
   font-weight: 500;
-  color: #000000;
-  min-width: 120px;
+  color: var(--ink-4);
+  min-width: 140px;
 }
 
 .info-item .value {
-  color: #202124;
-  font-weight: 400;
+  color: var(--ink-2);
+  font-weight: 500;
   flex: 1;
 }
 
 .info-item.price {
-  border-top: 1px solid #000000;
-  margin-top: 0.5rem;
-  padding-top: 1rem;
+  border-top: 1px solid var(--brand-border);
+  margin-top: 8px;
+  padding-top: 12px;
   grid-column: 1 / -1;
 }
 
 .info-item.price .value {
-  color: #ea4335;
-  font-size: 1.25rem;
-  font-weight: 600;
+  color: var(--brand-accent);
+  font-size: 20px;
+  font-weight: 700;
 }
 
 /* 颜色部分 */
@@ -205,51 +217,47 @@
 }
 
 .color-section h3 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #000000;
-  font-size: 1.5rem;
-  font-weight: 500;
-  border-bottom: 2px solid #000000;
-  padding-bottom: 0.5rem;
+  margin: 0 0 16px 0;
+  color: var(--ink-2);
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .color-display {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.3rem;
-  border: 1px solid #000000;
-  border-radius: 8px;
+  padding: 8px;
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius);
   background-color: #ffffff;
   justify-content: flex-start;
   width: 100%;
+  box-shadow: var(--shadow-1);
 }
 
 .color-image {
   width: 100%;
   max-width: 400px;
   height: auto;
-  border-radius: 8px;
-  border: 1px solid #000000;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  border-radius: 10px;
+  border: 1px solid var(--brand-border);
+  box-shadow: var(--shadow-1);
+  background: var(--brand-light);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .clickable-image:hover {
-  transform: scale(1.03);
-  border-color: #007bff;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  transform: scale(1.02);
+  box-shadow: var(--shadow-2);
 }
 
 .color-name {
-  margin-top: 0.1rem;
-  font-size: 0.9rem;
+  margin-top: 6px;
+  font-size: 14px;
   font-weight: 500;
-  color: #202124;
+  color: var(--ink-2);
   text-align: center;
-  padding: 0.1rem 0;
-  line-height: 1.1;
 }
 
 .colors-grid {
@@ -278,25 +286,23 @@
 }
 
 .interior-section h3 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #000000;
-  font-size: 1.5rem;
-  font-weight: 500;
-  border-bottom: 2px solid #000000;
-  padding-bottom: 0.5rem;
+  margin: 0 0 16px 0;
+  color: var(--ink-2);
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .interior-display {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.3rem;
-  border: 1px solid #000000;
-  border-radius: 8px;
+  padding: 8px;
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius);
   background-color: #ffffff;
   justify-content: flex-start;
   width: 100%;
+  box-shadow: var(--shadow-1);
 }
 
 /* 单张图片显示样式 */
@@ -312,20 +318,19 @@
   width: 100%;
   max-width: 400px;
   height: auto;
-  border-radius: 8px;
-  border: 1px solid #000000;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  border-radius: 10px;
+  border: 1px solid var(--brand-border);
+  box-shadow: var(--shadow-1);
+  background: var(--brand-light);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .interior-name {
-  margin-top: 0.1rem;
-  font-size: 0.9rem;
+  margin-top: 6px;
+  font-size: 14px;
   font-weight: 500;
-  color: #202124;
+  color: var(--ink-2);
   text-align: center;
-  padding: 0.1rem 0;
-  line-height: 1.1;
 }
 
 .interior-grid {
@@ -476,18 +481,18 @@
 
 /* 页脚样式 */
 .quote-footer {
-  background-color: #ffffff;
-  padding: 2rem;
-  text-align: left;
-  color: #000000;
-  border-top: 1px solid #e0e0e0;
-  margin-top: 2rem;
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: var(--brand-dark);
+  color: #e5e7eb;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 20px rgba(0,0,0,.12);
 }
 
 .quote-footer p {
   margin: 0;
   font-size: 1rem;
-  color: #000000;
+  color: #e5e7eb;
   white-space: pre-line;
 }
 
@@ -524,7 +529,7 @@
 
 .copyright {
   font-size: 0.875rem;
-  color: #000000;
+  color: #e5e7eb;
 }
 
 /* 响应式优化，确保在不同屏幕尺寸下正确显示 */

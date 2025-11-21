@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import App from './App.jsx'
 import AdminApp from './components/admin/AdminApp.jsx'
 import QuoteViewer from './components/admin/QuoteViewer.jsx'
+import QuoteViewerPro from './components/admin/QuoteViewerPro.jsx'
 import QuotesList from './components/admin/QuotesList.jsx'
 import QuoteDetails from './components/admin/QuoteDetails.jsx'
 import './assets/styles/main.css'
@@ -37,6 +38,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           </Route>
         </Route>
         <Route path="/quote/:id" element={<QuoteViewer />} />
+        <Route path="/quote-pro/:id" element={<QuoteViewerPro />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

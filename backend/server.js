@@ -48,7 +48,12 @@ let dbConnected = false;
 async function connectToDatabase() {
   try {
     const mongoUri = process.env.MONGO_URI;
-    console.log('正在连接MongoDB数据库...', mongoUri);
+    const redactUri = (uri) => {
+      try {
+        return uri.replace(/(mongodb\+srv:\/\/[^:]+):([^@]+)@/i, '$1:****@');
+      } catch { return uri; }
+    };
+    console.log('正在连接MongoDB数据库...', redactUri(mongoUri));
     
     const startTime = Date.now();
     const conn = await mongoose.connect(mongoUri, {
@@ -77,7 +82,7 @@ async function connectToDatabase() {
     
   } catch (err) {
     dbConnected = false;
-    console.error('MongoDB连接失败:', err.message, err.stack);
+    console.error('MongoDB连接失败:', err.message);
     // 每5秒尝试重新连接
     setTimeout(() => {
       console.log('尝试重新连接MongoDB...');

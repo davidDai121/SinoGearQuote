@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SinoGear Quote - New View</title>
+    <link rel="icon" type="image/png" href="/images/logo.png" />
+    <link rel="stylesheet" href="/assets/quote-viewer-pro.css" />
+    <style>
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div class="quote-pro">
+      <header class="pro-header">
+        <div class="pro-brand">
+          <img src="/images/logo.png" alt="Logo" class="pro-logo" />
+          <div class="pro-meta">
+            <h1 class="pro-title" id="pro-title">SinoGear Quote</h1>
+            <div class="pro-date" id="pro-date"></div>
+          </div>
+          <div class="pro-total">
+            <div class="pro-total-label">TOTAL</div>
+            <div class="pro-total-value" id="pro-total">0</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="pro-content">
+        <section class="pro-section" id="section-models">
+          <div class="pro-section-title">Vehicle Models</div>
+          <div class="pro-grid models" id="grid-models"></div>
+        </section>
+
+        <section class="pro-section" id="section-colors">
+          <div class="pro-section-title">Exterior Colors</div>
+          <div class="pro-grid colors" id="grid-colors"></div>
+        </section>
+
+        <section class="pro-section" id="section-interiors">
+          <div class="pro-section-title">Interior</div>
+          <div class="pro-grid interiors" id="grid-interiors"></div>
+        </section>
+
+        <section class="pro-footer-card" id="footer-card" style="display:none;">
+          <div class="pro-footer-text" id="footer-text"></div>
+        </section>
+      </main>
+
+      <footer class="pro-footer">© 2025 SinoGear</footer>
+    </div>
+
+    <script>
+      const API_BASE = 'http://localhost:5006/api';
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+
+      const dateStr = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' }).replace(/\//g, '.');
+      document.getElementById('pro-date').textContent = 'DATE: ' + dateStr;
+
+      if (!id) {
+        document.getElementById('pro-title').textContent = 'Invalid Quote ID';
+      } else {
+        fetch(`${API_BASE}/quotes/${id}`)
+          .then(r => r.json())
+          .then(quote => {
+            try {
+              document.getElementById('pro-title').textContent = quote.quoteName || 'SinoGear Quote';
+              document.getElementById('pro-total').textContent = (quote.totalPrice || 0);
+
+              const models = (quote.selectedModels && quote.selectedModels.length ? quote.selectedModels : (quote.models || (quote.modelDetails ? [quote.modelDetails] : [])));
+              const colors = (quote.exteriorImages && quote.exteriorImages.length ? quote.exteriorImages : (quote.selectedColors && quote.selectedColors.length ? quote.selectedColors : (quote.colors || (quote.colorDetails ? [quote.colorDetails] : []))));
+              const interiors = (quote.interiorImages && quote.interiorImages.length ? quote.interiorImages : (quote.selectedInteriorItems && quote.selectedInteriorItems.length ? quote.selectedInteriorItems : (quote.interiors || (quote.interiorDetails ? [quote.interiorDetails] : []))));
+
+              renderModels(models);
+              renderColors(colors);
+              renderInteriors(interiors);
+
+              if (quote.footerText) {
+                document.getElementById('footer-text').textContent = quote.footerText;
+                document.getElementById('footer-card').style.display = 'block';
+              }
+            } catch (e) {
+              console.error('Render error:', e);
+            }
+          })
+          .catch(err => {
+            console.error('Fetch quote failed', err);
+            document.getElementById('pro-title').textContent = 'Quote Load Error';
+          });
+      }
+
+      function createEl(tag, className, text) {
+        const el = document.createElement(tag);
+        if (className) el.className = className;
+        if (text) el.textContent = text;
+        return el;
+      }
+
+      function renderModels(list) {
+        const grid = document.getElementById('grid-models');
+        grid.innerHTML = '';
+        (list || []).forEach(m => {
+          const card = createEl('div', 'pro-card model');
+          if (m.image) {
+            const imgWrap = createEl('div', 'pro-image');
+            const img = createEl('img');
+            img.src = m.image;
+            img.alt = m.name || '';
+            imgWrap.appendChild(img);
+            card.appendChild(imgWrap);
+          }
+          const body = createEl('div', 'pro-card-body');
+          body.appendChild(createEl('div', 'pro-card-title', m.name || ''));
+          const spec = createEl('div', 'pro-spec');
+          spec.appendChild(row('Energy Type', m.energy));
+          spec.appendChild(row('Battery Info', m.battery));
+          spec.appendChild(row('Range', m.cltc));
+          body.appendChild(spec);
+          const price = (m.prices && m.prices[0] && m.prices[0].amount) || m.price || '';
+          body.appendChild(createEl('div', 'pro-price', price));
+          card.appendChild(body);
+          grid.appendChild(card);
+        });
+      }
+
+      function renderColors(list) {
+        const grid = document.getElementById('grid-colors');
+        grid.innerHTML = '';
+        (list || []).forEach(c => {
+          const card = createEl('div', 'pro-card color');
+          const imgWrap = createEl('div', 'pro-image');
+          const img = createEl('img');
+          img.src = c.url || c.image || '';
+          img.alt = c.name || '';
+          imgWrap.appendChild(img);
+          card.appendChild(imgWrap);
+          const body = createEl('div', 'pro-card-body');
+          body.appendChild(createEl('div', 'pro-card-title small', c.name || ''));
+          card.appendChild(body);
+          grid.appendChild(card);
+        });
+      }
+
+      function renderInteriors(list) {
+        const grid = document.getElementById('grid-interiors');
+        grid.innerHTML = '';
+        (list || []).forEach(n => {
+          const card = createEl('div', 'pro-card interior');
+          const imgWrap = createEl('div', 'pro-image');
+          const img = createEl('img');
+          img.src = n.url || n.image || '';
+          img.alt = n.name || '';
+          imgWrap.appendChild(img);
+          card.appendChild(imgWrap);
+          const body = createEl('div', 'pro-card-body');
+          body.appendChild(createEl('div', 'pro-card-title small', n.name || ''));
+          card.appendChild(body);
+          grid.appendChild(card);
+        });
+      }
+
+      function row(label, value) {
+        const r = createEl('div', 'row');
+        r.appendChild(createEl('span', 'label', label));
+        r.appendChild(createEl('span', 'value', value || ''));
+        return r;
+      }
+    </script>
+  </body>
+</html>
