@@ -1,12 +1,27 @@
 // 基于API的管理员数据服务
 
 // API基础配置
-const API_BASE_URL = 'http://localhost:5006/api';
+const resolveBaseUrl = () => {
+  try {
+    const candidate = (typeof window !== 'undefined' && window.__API_BASE_URL__) || process.env.API_BASE_URL || process.env.VITE_API_BASE_URL;
+    if (candidate) {
+      const base = String(candidate).replace(/\/+$/, '');
+      return base.endsWith('/api') ? base : `${base}/api`;
+    }
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+      return `${window.location.origin.replace(/\/+$/, '')}/api`;
+    }
+  } catch {}
+  return '/api';
+};
+const API_BASE_URL = resolveBaseUrl();
 
 // 通用API请求函数
 const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      mode: 'cors',
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         ...options.headers
