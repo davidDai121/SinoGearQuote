@@ -17,21 +17,23 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    loadModels();
-    if (quoteId) {
-      loadSelectedModels();
-    }
+    (async () => {
+      await loadModels();
+      if (quoteId) {
+        await loadSelectedModels();
+      }
+    })();
   }, [quoteId]);
 
-  const loadModels = () => {
-    const data = getModels(quoteId);
+  const loadModels = async () => {
+    const data = await getModels(quoteId);
     setModels(Array.isArray(data) ? data : []);
   };
 
-  const loadSelectedModels = () => {
-    const selected = getSelectedModels(quoteId);
-    setSelectedModels(selected);
-    setTempSelectedModels([...selected]);
+  const loadSelectedModels = async () => {
+    const selected = await getSelectedModels(quoteId);
+    setSelectedModels(Array.isArray(selected) ? selected : []);
+    setTempSelectedModels(Array.isArray(selected) ? [...selected] : []);
   };
 
   const handleSelectModel = (modelId) => {
@@ -126,28 +128,54 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     });
   };
 
-  // 处理图片文件上传
+  // 处理图片文件上传（压缩并转为Base64，避免依赖单独上传端点）
   const handleImageUpload = async (file) => {
     if (file && file.type.startsWith('image/')) {
       try {
-        const formData = new FormData();
-        formData.append('image', file);
-        
-        const response = await fetch('http://localhost:5000/api/models/upload', {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!response.ok) {
-          throw new Error('图片上传失败');
-        }
-        
-        const result = await response.json();
-        setFormData(prev => ({ ...prev, image: result.imagePath }));
-      } catch (error) {
-        console.error('图片上传错误:', error);
-        setMessage('图片上传失败，请重试');
-        // 失败时显示提示
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                const maxWidth = 1200;
+                const maxHeight = 1200;
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth || height > maxHeight) {
+                  const ratio = Math.min(maxWidth / width, maxHeight / height);
+                  width = width * ratio;
+                  height = height * ratio;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const quality = 0.75;
+                const imageDataUrl = canvas.toDataURL(file.type, quality);
+                const dataSize = new Blob([imageDataUrl]).size;
+                if (dataSize > 2 * 1024 * 1024) {
+                  const compressedUrl = canvas.toDataURL(file.type, 0.6);
+                  setFormData(prev => ({ ...prev, image: compressedUrl }));
+                } else {
+                  setFormData(prev => ({ ...prev, image: imageDataUrl }));
+                }
+              } catch (canvasError) {
+                setFormData(prev => ({ ...prev, image: e.target.result }));
+              }
+            };
+            img.onerror = () => {
+              setFormData(prev => ({ ...prev, image: e.target.result }));
+            };
+            img.src = e.target.result;
+          } catch {
+            setFormData(prev => ({ ...prev, image: e.target.result }));
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch {
+        setMessage('图片处理失败，请重试');
         setTimeout(() => setMessage(''), 3000);
       }
     }

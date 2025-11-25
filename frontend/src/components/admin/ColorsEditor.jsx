@@ -27,12 +27,14 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    loadColors();
+    (async () => {
+      await loadColors();
+    })();
   }, [quoteId]);
 
-  const loadColors = () => {
-    const data = getExteriorColors(quoteId);
-    setColors(data);
+  const loadColors = async () => {
+    const data = await getExteriorColors(quoteId);
+    setColors(Array.isArray(data) ? data : []);
   };
 
   const handleSelectColor = (colorId) => {

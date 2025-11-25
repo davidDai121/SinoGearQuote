@@ -28,21 +28,23 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    loadInteriorItems();
-    if (quoteId) {
-      loadSelectedItems();
-    }
+    (async () => {
+      await loadInteriorItems();
+      if (quoteId) {
+        await loadSelectedItems();
+      }
+    })();
   }, [quoteId]);
 
-  const loadInteriorItems = () => {
-    const data = getInteriorItems(quoteId);
-    setInteriorItems(data);
+  const loadInteriorItems = async () => {
+    const data = await getInteriorItems(quoteId);
+    setInteriorItems(Array.isArray(data) ? data : []);
   };
 
-  const loadSelectedItems = () => {
-    const selected = getSelectedInteriorItems(quoteId);
-    setSelectedItems(selected);
-    setTempSelectedItems([...selected]);
+  const loadSelectedItems = async () => {
+    const selected = await getSelectedInteriorItems(quoteId);
+    setSelectedItems(Array.isArray(selected) ? selected : []);
+    setTempSelectedItems(Array.isArray(selected) ? [...selected] : []);
   };
 
   const handleSelectItem = (itemId) => {
@@ -298,7 +300,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.name || !formData.image) {
@@ -326,7 +328,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     }
 
     setInteriorItems(newItems);
-    const saveResult = saveInteriorItems(newItems, quoteId);
+    const saveResult = await saveInteriorItems(newItems, quoteId);
     
     if (!saveResult) {
       setMessage('保存内饰数据失败！');
@@ -335,7 +337,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     
     // 如果当前有选中的内饰项且存在报价单，自动更新报价单中的内饰图片信息
     if (quoteId && tempSelectedItems.length > 0) {
-      updateQuoteWithInteriorImages(newItems);
+      await updateQuoteWithInteriorImages(newItems);
     }
     
     setMessage(editingIndex >= 0 ? '更新成功！' : '添加成功！');
@@ -348,12 +350,12 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (window.confirm('确定要重置为默认内饰项吗？')) {
       // 不传递quoteId时会返回默认内饰项
-      const defaultItems = getInteriorItems();
+      const defaultItems = await getInteriorItems();
       setInteriorItems(defaultItems);
-      saveInteriorItems(defaultItems, quoteId);
+      await saveInteriorItems(defaultItems, quoteId);
       setMessage('重置成功！');
       if (onInteriorUpdated) {
         onInteriorUpdated();

@@ -10,16 +10,17 @@ function FooterEditor({ quoteId, onFooterUpdated }) {
   // 初始化页脚内容
   useEffect(() => {
     if (quoteId) {
-      const quote = getQuoteById(quoteId);
-      if (quote && quote.footerText) {
-        setFooterText(quote.footerText);
-        setTempFooterText(quote.footerText);
-      } else {
-        // 设置默认页脚文本
-        const defaultFooter = '感谢您选择我们的产品和服务。如有任何疑问，请随时联系我们的销售团队。';
-        setFooterText(defaultFooter);
-        setTempFooterText(defaultFooter);
-      }
+      (async () => {
+        const quote = await getQuoteById(quoteId);
+        if (quote && quote.footerText) {
+          setFooterText(quote.footerText);
+          setTempFooterText(quote.footerText);
+        } else {
+          const defaultFooter = '感谢您选择我们的产品和服务。如有任何疑问，请随时联系我们的销售团队。';
+          setFooterText(defaultFooter);
+          setTempFooterText(defaultFooter);
+        }
+      })();
     }
   }, [quoteId]);
 
