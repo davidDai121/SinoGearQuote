@@ -1,4 +1,17 @@
-const API_BASE_URL = 'http://localhost:5006/api';
+const resolveBaseUrl = () => {
+  try {
+    const candidate = (typeof window !== 'undefined' && window.__API_BASE_URL__) || process.env.API_BASE_URL || process.env.VITE_API_BASE_URL;
+    if (candidate) {
+      const base = String(candidate).replace(/\/+$/, '');
+      return base.endsWith('/api') ? base : `${base}/api`;
+    }
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+      return `${window.location.origin.replace(/\/+$/, '')}/api`;
+    }
+  } catch {}
+  return '/api';
+};
+const API_BASE_URL = resolveBaseUrl();
 
 // 获取车辆模型数据
 export const getVehicleModels = () => {

@@ -1,4 +1,8 @@
 import { build } from 'esbuild'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+
+const absWorkingDir = path.dirname(fileURLToPath(new URL(import.meta.url)))
 
 await build({
   entryPoints: ['src/main.jsx'],
@@ -12,6 +16,7 @@ await build({
     'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL || ''),
     'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || '')
   },
+  absWorkingDir,
 })
 
 console.log('Frontend built: assets/main.bundle.js')
