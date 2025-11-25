@@ -1,20 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const VehicleModel = require('../models/VehicleModel');
-const multer = require('multer');
-const path = require('path');
-
-// 文件上传配置
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../uploads/models'));
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage });
 
 // 获取所有车型数据
 router.get('/', async (req, res) => {
@@ -30,18 +16,21 @@ router.get('/', async (req, res) => {
 });
 
 // 添加新车型
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', async (req, res) => {
   // 检查数据库连接状态
   if (!req.dbConnected) {
     return res.status(503).json({ message: '数据库服务暂时不可用，请稍后再试' });
   }
   
   try {
-    const { name, quoteName, price, image } = req.body;
+    const { name, quoteName, price, energy, battery, cltc, prices } = req.body;
     const newModel = new VehicleModel({
-      name: name || quoteName, // 支持name或quoteName字段
-      price: Number(price),
-      image: req.file ? `uploads/models/${req.file.filename}` : (image || '')
+      name: name || quoteName,
+      energy: energy || '',
+      battery: battery || '',
+      cltc: cltc || '',
+      prices: Array.isArray(prices) ? prices : [],
+      price: Number(price) || 0
     });
     await newModel.save();
     res.status(201).json(newModel);
@@ -51,22 +40,22 @@ router.post('/', upload.single('image'), async (req, res) => {
 });
 
 // 更新车型
-router.put('/:id', upload.single('image'), async (req, res) => {
+router.put('/:id', async (req, res) => {
   // 检查数据库连接状态
   if (!req.dbConnected) {
     return res.status(503).json({ message: '数据库服务暂时不可用，请稍后再试' });
   }
   
   try {
-    const { name, quoteName, price, image } = req.body;
-    const updateData = { name: name || quoteName, price: Number(price) }; // 支持name或quoteName字段
-    
-    // 如果有新图片，则更新图片路径
-    if (req.file) {
-      updateData.image = `uploads/models/${req.file.filename}`;
-    } else if (typeof image !== 'undefined') {
-      updateData.image = image;
-    }
+    const { name, quoteName, price, energy, battery, cltc, prices } = req.body;
+    const updateData = {
+      name: name || quoteName,
+      energy: energy || '',
+      battery: battery || '',
+      cltc: cltc || '',
+      prices: Array.isArray(prices) ? prices : [],
+      price: Number(price) || 0
+    };
     
     const updatedModel = await VehicleModel.findByIdAndUpdate(
       req.params.id,

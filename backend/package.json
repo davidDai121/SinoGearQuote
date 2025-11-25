@@ -4,6 +4,7 @@
   "description": "Backend server for SinoGear Quote system",
   "main": "server.js",
   "scripts": {
+    "prestart": "node ../frontend/build.mjs",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
