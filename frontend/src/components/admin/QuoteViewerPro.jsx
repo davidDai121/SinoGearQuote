@@ -47,9 +47,6 @@ function QuoteViewerPro() {
           <div className="pro-grid models">
             {(models || []).map((m, i) => (
               <div key={i} className="pro-card model">
-                {m.image ? (
-                  <div className="pro-image"><img src={m.image} alt={m.name || ''} /></div>
-                ) : null}
                 <div className="pro-card-body">
                   <div className="pro-card-title">{m.name || ''}</div>
                   <div className="pro-spec">

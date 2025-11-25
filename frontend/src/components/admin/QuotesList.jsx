@@ -321,7 +321,7 @@ function QuotesList() {
                       预览
                     </Link>
                     <Link 
-                      to={`/quote-pro.html?id=${(quote._id || quote.id)}`} 
+                      to={`/quote-pro/${(quote._id || quote.id)}`} 
                       target="_blank"
                       className="btn btn-sm btn-view"
                       title="新版预览"

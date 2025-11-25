@@ -15,29 +15,5 @@
     <div id="root"></div>
     
   </body>
-  <script>
-    (function() {
-      function addProButtons() {
-        var rows = document.querySelectorAll('.action-buttons');
-        rows.forEach(function(cell) {
-          // avoid duplicates
-          if (cell.querySelector('a[data-pro-view]')) return;
-          var preview = cell.querySelector('a[href^="/quote/"]');
-          if (!preview) return;
-          var href = preview.getAttribute('href');
-          var id = href.replace('/quote/','');
-          var pro = document.createElement('a');
-          pro.setAttribute('href','/quote-pro.html?id=' + id);
-          pro.setAttribute('target','_blank');
-          pro.setAttribute('data-pro-view','true');
-          pro.className = 'btn btn-sm btn-view';
-          pro.textContent = '新版预览';
-          cell.insertBefore(pro, preview.nextSibling);
-        });
-      }
-      var observer = new MutationObserver(function() { addProButtons(); });
-      observer.observe(document.body, { childList: true, subtree: true });
-      window.addEventListener('load', addProButtons);
-    })();
-  </script>
+  
 </html>

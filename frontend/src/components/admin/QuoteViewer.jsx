@@ -75,20 +75,7 @@ function QuoteViewer() {
               <div className="models-grid">
                 {quote.selectedModels.map((model, index) => (
                   <div key={`${model.id || model.name}-${index}`} className="model-card">
-                    {model.image && (
-                      <div className="model-image">
-                        <img 
-                          src={model.image} 
-                          alt={model.name} 
-                          className="clickable-image"
-                          onClick={() => {
-                            setSelectedImage(model.image);
-                            setSelectedImageName(model.name);
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        />
-                      </div>
-                    )}
+                    
                     <h4>{model.name}</h4>
                     <div className="model-info">
                       <div className="info-item">
@@ -127,20 +114,7 @@ function QuoteViewer() {
             ) : (
               // 显示单个车型信息（保持向后兼容）
               <div className="model-card">
-                {quote.modelDetails.image && (
-                  <div className="model-image">
-                    <img 
-                      src={quote.modelDetails.image} 
-                      alt={quote.modelDetails.name} 
-                      className="clickable-image"
-                      onClick={() => {
-                        setSelectedImage(quote.modelDetails.image);
-                        setSelectedImageName(quote.modelDetails.name);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </div>
-                )}
+                
                 <h4>{quote.modelDetails.name}</h4>
                 <div className="model-info">
                   <div className="info-item">

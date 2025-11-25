@@ -11,8 +11,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     energy: '',
     battery: '',
     cltc: '',
-    prices: [{ type: '标准价格', amount: '' }],
-    image: ''
+    prices: [{ type: '标准价格', amount: '' }]
   });
   const [message, setMessage] = useState('');
 
@@ -128,102 +127,20 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     });
   };
 
-  // 处理图片文件上传（压缩并转为Base64，避免依赖单独上传端点）
-  const handleImageUpload = async (file) => {
-    if (file && file.type.startsWith('image/')) {
-      try {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const img = new Image();
-            img.onload = () => {
-              try {
-                const canvas = document.createElement('canvas');
-                const maxWidth = 1200;
-                const maxHeight = 1200;
-                let width = img.width;
-                let height = img.height;
-                if (width > maxWidth || height > maxHeight) {
-                  const ratio = Math.min(maxWidth / width, maxHeight / height);
-                  width = width * ratio;
-                  height = height * ratio;
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                const quality = 0.75;
-                const imageDataUrl = canvas.toDataURL(file.type, quality);
-                const dataSize = new Blob([imageDataUrl]).size;
-                if (dataSize > 2 * 1024 * 1024) {
-                  const compressedUrl = canvas.toDataURL(file.type, 0.6);
-                  setFormData(prev => ({ ...prev, image: compressedUrl }));
-                } else {
-                  setFormData(prev => ({ ...prev, image: imageDataUrl }));
-                }
-              } catch (canvasError) {
-                setFormData(prev => ({ ...prev, image: e.target.result }));
-              }
-            };
-            img.onerror = () => {
-              setFormData(prev => ({ ...prev, image: e.target.result }));
-            };
-            img.src = e.target.result;
-          } catch {
-            setFormData(prev => ({ ...prev, image: e.target.result }));
-          }
-        };
-        reader.readAsDataURL(file);
-      } catch {
-        setMessage('图片处理失败，请重试');
-        setTimeout(() => setMessage(''), 3000);
-      }
-    }
-  };
   
-  // 处理拖拽上传
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.target.classList.add('drag-over');
-  };
-  
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.target.classList.remove('drag-over');
-  };
-  
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.target.classList.remove('drag-over');
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageUpload(e.dataTransfer.files[0]);
-    }
-  };
-  
-  // 处理文件选择
-  const handleFileSelect = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleImageUpload(e.target.files[0]);
-    }
-  };
 
   const handleEdit = (index) => {
     setEditingIndex(index);
     // 确保模型数据结构一致，如果没有prices字段，创建一个包含原price的数组
     const model = models[index];
-    const { id, name, energy, battery, cltc, price, prices, image } = model;
+    const { id, name, energy, battery, cltc, price, prices } = model;
     const formDataToSet = {
       id,
       name,
       energy,
       battery,
       cltc,
-      prices: prices || [{ type: '标准价格', amount: price || '' }],
-      image: image || ''
+      prices: prices || [{ type: '标准价格', amount: price || '' }]
     };
     setFormData(formDataToSet);
   };
@@ -381,44 +298,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
           </div>
         </div>
         
-        <div className="form-group">
-          <label>车型图片</label>
-          <div 
-            className="image-upload-container"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => document.getElementById('model-image-upload').click()}
-          >
-            <input
-              type="file"
-              id="model-image-upload"
-              accept="image/*"
-              onChange={handleFileSelect}
-              style={{ display: 'none' }}
-            />
-            {formData.image ? (
-              <div className="image-preview">
-                <img src={formData.image} alt="预览" />
-                <button 
-                  type="button" 
-                  className="btn btn-sm btn-remove"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFormData(prev => ({ ...prev, image: '' }));
-                  }}
-                >
-                  移除
-                </button>
-              </div>
-            ) : (
-              <div className="upload-placeholder">
-                <p>拖拽图片到这里或点击上传</p>
-                <p className="upload-hint">支持 JPG, PNG, GIF 等格式</p>
-              </div>
-            )}
-          </div>
-        </div>
+        
         
         <div className="form-group">
           <label>价格信息 *</label>
@@ -468,7 +348,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
             className="btn btn-secondary"
             onClick={() => {
               setEditingIndex(-1);
-              setFormData({ name: '', energy: '', battery: '', cltc: '', prices: [{ type: '标准价格', amount: '' }], image: '' });
+              setFormData({ name: '', energy: '', battery: '', cltc: '', prices: [{ type: '标准价格', amount: '' }] });
             }}
           >
             取消
@@ -529,7 +409,6 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
                   <td>{model.energy || '-'}</td>
                   <td>{model.battery || '-'}</td>
                   <td>{model.cltc || '-'}</td>
-                  <td>{model.image ? '✓' : '-'}</td>
                   <td>
                     <div className="prices-list">
                       {prices.map((price, priceIndex) => (
