@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getModels, saveModels, getSelectedModels, saveSelectedModels, updateQuote } from '../../services/adminService';
+import { getModels, saveModels, getSelectedModels, saveSelectedModels, updateQuote, deleteModel } from '../../services/adminService';
 
-function ModelsEditor({ quoteId, onModelsUpdated }) {
+function ModelsEditor({ _id, onModelsUpdated }) {
   const [models, setModels] = useState([]);
   const [selectedModels, setSelectedModels] = useState([]);
   const [tempSelectedModels, setTempSelectedModels] = useState([]);
@@ -18,21 +18,22 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
   useEffect(() => {
     (async () => {
       await loadModels();
-      if (quoteId) {
+      if (_id) {
         await loadSelectedModels();
       }
     })();
-  }, [quoteId]);
+  }, [_id]);
 
   const loadModels = async () => {
-    const data = await getModels(quoteId);
+    const data = await getModels(_id);
     setModels(Array.isArray(data) ? data : []);
   };
 
   const loadSelectedModels = async () => {
-    const selected = await getSelectedModels(quoteId);
-    setSelectedModels(Array.isArray(selected) ? selected : []);
-    setTempSelectedModels(Array.isArray(selected) ? [...selected] : []);
+    const selected = await getSelectedModels(_id);
+    const ids = Array.isArray(selected) ? selected.map(x => String(x)) : [];
+    setSelectedModels(ids);
+    setTempSelectedModels([...ids]);
   };
 
   const handleSelectModel = (modelId) => {
@@ -48,15 +49,21 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
   };
 
   const handleConfirmAdd = () => {
-    setSelectedModels([...tempSelectedModels]);
-    saveSelectedModels(tempSelectedModels, quoteId);
+    // 仅保存有效的Mongo _id，过滤掉本地索引ID
+    const idsForSave = (tempSelectedModels || []).map(selId => {
+      const m = (models || []).find(mm => mm._id === selId);
+      return m && m._id ? m._id : null;
+    }).filter(Boolean);
+    setSelectedModels(idsForSave);
+    saveSelectedModels(idsForSave, _id);
+    updateQuote(_id, { models: idsForSave });
     
     // 更新报价单对象中的车型信息
-    if (quoteId && tempSelectedModels.length > 0) {
+      if (_id && tempSelectedModels.length > 0) {
       // 获取所有选中的车型详细信息
       const allSelectedModels = tempSelectedModels.map(modelId => {
         const safeModels = models || [];
-        const model = safeModels.find(m => m.id === modelId) || safeModels[modelId];
+        const model = safeModels.find(m => m._id === modelId);
         return model ? {
           ...model,
           price: model.prices?.[0]?.amount || model.price // 保持向后兼容性
@@ -70,11 +77,14 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
         // 更新报价单，包含：
         // 1. 主要显示的model和modelDetails（向后兼容）
         // 2. 所有选中的车型列表selectedModels
-        updateQuote(quoteId, {
+        updateQuote(_id, {
           model: firstSelectedModel.name,
           modelDetails: firstSelectedModel,
           selectedModels: allSelectedModels // 存储所有选中的车型
         });
+        if (Array.isArray(selectedModels) && selectedModels.length > 0) {
+          updateQuote(_id, { models: selectedModels });
+        }
       }
     }
     
@@ -133,9 +143,9 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     setEditingIndex(index);
     // 确保模型数据结构一致，如果没有prices字段，创建一个包含原price的数组
     const model = models[index];
-    const { id, name, energy, battery, cltc, price, prices } = model;
+    const { _id, name, energy, battery, cltc, price, prices } = model;
     const formDataToSet = {
-      id,
+      _id,
       name,
       energy,
       battery,
@@ -145,18 +155,21 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     setFormData(formDataToSet);
   };
 
-  const handleDelete = (index) => {
+  const handleDelete = async (index) => {
     if (window.confirm('确定要删除这个车型吗？')) {
-      const modelId = models[index].id || index;
+      const modelId = models[index]._id;
       const newModels = [...models];
       newModels.splice(index, 1);
       setModels(newModels);
-      saveModels(newModels, quoteId);
+      // 后端删除对应模型
+      await deleteModel(modelId);
+      // 刷新列表，确保状态与后端一致
+      await loadModels();
       
       // 同时从已选择列表中移除
       const newSelected = selectedModels.filter(id => id !== modelId);
       setSelectedModels(newSelected);
-      saveSelectedModels(newSelected, quoteId);
+      await saveSelectedModels(newSelected, _id);
       
       setMessage('删除成功！');
       if (onModelsUpdated) {
@@ -166,7 +179,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.name || !formData.energy || !formData.battery || !formData.cltc || !formData.prices?.[0]?.amount) {
@@ -180,22 +193,18 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
       newModels = [...models];
       newModels[editingIndex] = { ...formData };
     } else {
-      // 添加新模型
-      const newId = models.length > 0 
-        ? Math.max(...models.map(m => m.id || 0)) + 1 
-        : 1;
-      newModels = [...models, { ...formData, id: newId }];
+      newModels = [...models, { ...formData }];
     }
 
     // 保存模型数据并检查结果
-    const saveSuccess = saveModels(newModels, quoteId);
+    const saveSuccess = await saveModels(newModels, _id);
     if (saveSuccess) {
-      setModels(newModels);
+      await loadModels();
       
       // 更新报价单对象中的modelDetails（如果该车型是选中的）
-      if (quoteId) {
+      if (_id) {
         const updatedModel = editingIndex >= 0 ? newModels[editingIndex] : newModels[newModels.length - 1];
-        const isSelected = tempSelectedModels.includes(updatedModel.id);
+        const isSelected = tempSelectedModels.includes(updatedModel._id);
         
         if (isSelected) {
           // 为了保持向后兼容性，确保有price字段
@@ -204,7 +213,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
             price: updatedModel.prices?.[0]?.amount
           };
           
-          const updateSuccess = updateQuote(quoteId, {
+          const updateSuccess = updateQuote(_id, {
             model: updatedModel.name,
             modelDetails: modelForQuote
           });
@@ -239,7 +248,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
   return (
     <div className="editor-container">
       <h2>车辆型号管理</h2>
-      {quoteId && <div className="quote-info">当前编辑报价单ID: {quoteId}</div>}
+      {_id && <div className="quote-info">当前编辑报价单ID: {_id}</div>}
       
       {message && (
         <div className={`message ${message.includes('成功') ? 'success' : 'error'}`}>
@@ -390,7 +399,7 @@ function ModelsEditor({ quoteId, onModelsUpdated }) {
               </thead>
           <tbody>
             {(models || []).map((model, index) => {
-              const modelId = model.id || index;
+              const modelId = model._id;
               const isSelected = tempSelectedModels.includes(modelId);
               // 确保有prices字段，如果没有则创建一个包含原price的数组
               const prices = model.prices || [{ type: '标准价格', amount: model.price || '' }];

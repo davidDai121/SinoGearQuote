@@ -17,17 +17,15 @@ function QuoteViewer() {
   // 移除不再使用的状态和函数
 
   useEffect(() => {
-    const fetchQuote = () => {
-      const quoteData = getQuoteById(id);
+    const fetchQuote = async () => {
+      const quoteData = await getQuoteById(id);
       if (quoteData) {
         setQuote(quoteData);
-    
       } else {
         setError('未找到该报价单');
       }
       setLoading(false);
     };
-
     fetchQuote();
   }, [id]);
 
@@ -62,7 +60,7 @@ function QuoteViewer() {
       {/* 只要有quote数据就显示报价单内容 */}
       {quote && (
         <main className="quote-content">
-        <h1>{quote?.quoteName}</h1>
+        <h1>{quote?.name}</h1>
         <p className="quote-date">
           DATE: {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' }).replace(/\//g, '.')}
         </p>
@@ -70,68 +68,71 @@ function QuoteViewer() {
         <div className="quote-details">
           <div className="model-section">
             <h3>Vehicle Models</h3>
-            {quote.selectedModels && quote.selectedModels.length > 0 ? (
-              // 显示多个车型信息
+            {Array.isArray(quote.models) && quote.models.length > 0 ? (
               <div className="models-grid">
-                {quote.selectedModels.map((model, index) => (
-                  <div key={`${model.id || model.name}-${index}`} className="model-card">
-                    
-                    <h4>{model.name}</h4>
-                    <div className="model-info">
-                      <div className="info-item">
-                        <span className="label">Energy Type: </span>
-                        <span className="value">{model.energy}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="label">Battery Info: </span>
-                        <span className="value">{model.battery}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="label">Range: </span>
-                        <span className="value">{model.cltc}</span>
-                      </div>
-                      
-                      {/* 显示多价格信息 */}
-                      {model.prices && model.prices.length > 0 ? (
-                        model.prices.map((price, priceIndex) => (
-                          <div key={priceIndex} className="info-item price">
-                            <span className="label">
-                          {price.type ? `${price.type}: ` : priceIndex === 0 ? "Price: " : `Price ${priceIndex + 1}: `}
-                        </span>
-                            <span className="value">{price.amount}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="info-item price">
-                          <span className="label">Price: </span>
-                          <span className="value">{model.price}</span>
+                {quote.models.filter(Boolean).map((model, index) => {
+                  const isObj = typeof model === 'object';
+                  const name = isObj ? (model.name || '') : '';
+                  const energy = isObj ? (model.energy || '') : '';
+                  const battery = isObj ? (model.battery || '') : '';
+                  const cltc = isObj ? (model.cltc || '') : '';
+                  const prices = isObj ? (model.prices || []) : [];
+                  const priceVal = isObj ? (model.price || '') : '';
+                  return (
+                    <div key={`model-${index}`} className="model-card">
+                      <h4>{name}</h4>
+                      <div className="model-info">
+                        <div className="info-item">
+                          <span className="label">Energy Type: </span>
+                          <span className="value">{energy}</span>
                         </div>
-                      )}
+                        <div className="info-item">
+                          <span className="label">Battery Info: </span>
+                          <span className="value">{battery}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Range: </span>
+                          <span className="value">{cltc}</span>
+                        </div>
+                        {prices && prices.length > 0 ? (
+                          prices.map((p, pIndex) => (
+                            <div key={`price-${pIndex}`} className="info-item price">
+                              <span className="label">{p?.type ? `${p.type}: ` : pIndex === 0 ? 'Price: ' : `Price ${pIndex + 1}: `}</span>
+                              <span className="value">{p?.amount || ''}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="info-item price">
+                            <span className="label">Price: </span>
+                            <span className="value">{priceVal}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               // 显示单个车型信息（保持向后兼容）
               <div className="model-card">
                 
-                <h4>{quote.modelDetails.name}</h4>
+                <h4>{quote.modelDetails?.name || ''}</h4>
                 <div className="model-info">
                   <div className="info-item">
                       <span className="label">Energy Type: </span>
-                      <span className="value">{quote.modelDetails.energy}</span>
+                      <span className="value">{quote.modelDetails?.energy || ''}</span>
                     </div>
                     <div className="info-item">
                       <span className="label">Battery Info: </span>
-                      <span className="value">{quote.modelDetails.battery}</span>
+                      <span className="value">{quote.modelDetails?.battery || ''}</span>
                     </div>
                     <div className="info-item">
                       <span className="label">Range: </span>
-                      <span className="value">{quote.modelDetails.cltc}</span>
+                      <span className="value">{quote.modelDetails?.cltc || ''}</span>
                     </div>
                   
                   {/* 显示多价格信息 */}
-                  {quote.modelDetails.prices && quote.modelDetails.prices.length > 0 ? (
+                  {Array.isArray(quote.modelDetails?.prices) && quote.modelDetails.prices.length > 0 ? (
                     quote.modelDetails.prices.map((price, index) => (
                       <div key={index} className="info-item price">
                         <span className="label">
@@ -143,7 +144,7 @@ function QuoteViewer() {
                   ) : (
                     <div className="info-item price">
                       <span className="label">Price: </span>
-                      <span className="value">{quote.modelDetails.price}</span>
+                      <span className="value">{quote.modelDetails?.price || ''}</span>
                     </div>
                   )}
                 </div>
@@ -154,7 +155,6 @@ function QuoteViewer() {
           <div className="color-section">
             <h3>Exterior Colors</h3>
             {quote.exteriorImages && quote.exteriorImages.length > 0 ? (
-              // 优先使用新的直接存储的图片数据
               <div className="colors-grid">
                 {quote.exteriorImages.map((image, index) => (
                   <div key={`exterior-${index}`} className="color-display">
@@ -174,11 +174,10 @@ function QuoteViewer() {
                   </div>
                 ))}
               </div>
-            ) : quote.selectedColors && quote.selectedColors.length > 0 ? (
-              // 显示多个颜色，使用CSS控制的自适应列数
+            ) : quote.colors && Array.isArray(quote.colors) && quote.colors.length > 0 ? (
               <div className="colors-grid">
-                {quote.selectedColors.filter(color => color !== null && color !== undefined).map((color, index) => (
-                  <div key={`${color.id || color.name || index}-${index}`} className="color-display">
+                {quote.colors.filter(Boolean).map((color, index) => (
+                  <div key={`color-${index}`} className="color-display">
                     <img 
                       src={color.image || ''} 
                       alt={color.name || 'Color'} 
@@ -194,6 +193,34 @@ function QuoteViewer() {
                     <p className="color-name">{color.name}</p>
                   </div>
                 ))}
+              </div>
+            ) : quote.selectedColors && quote.selectedColors.length > 0 ? (
+              // 显示多个颜色，使用CSS控制的自适应列数
+              <div className="colors-grid">
+                {quote.selectedColors
+                  .filter((color) => color !== null && color !== undefined)
+                  .map((color, index) => {
+                    const isObj = typeof color === 'object';
+                    const imgSrc = isObj ? (color.image || '') : '';
+                    const name = isObj ? (color.name || 'Color') : 'Color';
+                    return (
+                      <div key={`selected-color-${index}`} className="color-display">
+                        <img
+                          src={imgSrc}
+                          alt={name}
+                          className="color-image clickable-image"
+                          onClick={() => {
+                            if (imgSrc) {
+                              setSelectedImage(imgSrc);
+                              setSelectedImageName(name);
+                            }
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <p className="color-name">{name}</p>
+                      </div>
+                    );
+                  })}
               </div>
             ) : (
               // 显示单个颜色（保持向后兼容）
@@ -217,7 +244,6 @@ function QuoteViewer() {
           
           {/* 内饰部分 */}
           {quote.interiorImages && quote.interiorImages.length > 0 ? (
-            // 优先使用新的直接存储的图片数据
             <div className="interior-section">
               <h3>Interior Selection</h3>
               <div className="interior-grid">
@@ -240,12 +266,12 @@ function QuoteViewer() {
                 ))}
               </div>
             </div>
-          ) : quote.selectedInteriorItems && quote.selectedInteriorItems.length > 0 ? (
+          ) : quote.interiors && Array.isArray(quote.interiors) && quote.interiors.length > 0 ? (
             <div className="interior-section">
               <h3>Interior Selection</h3>
               <div className="interior-grid">
-                {quote.selectedInteriorItems.filter(item => item !== null && item !== undefined).map((item, index) => (
-                  <div key={`${item.id || item.name}-${index}`} className="interior-display">
+                {quote.interiors.filter(Boolean).map((item, index) => (
+                  <div key={`interior-pop-${index}`} className="interior-display">
                     <img 
                       src={item.image || ''} 
                       alt={item.name || 'Interior'} 
@@ -261,6 +287,36 @@ function QuoteViewer() {
                     <p className="interior-name">{item.name}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+          ) : quote.selectedInteriorItems && quote.selectedInteriorItems.length > 0 ? (
+            <div className="interior-section">
+              <h3>Interior Selection</h3>
+              <div className="interior-grid">
+                {quote.selectedInteriorItems
+                  .filter(item => item !== null && item !== undefined)
+                  .map((item, index) => {
+                    const isObj = typeof item === 'object';
+                    const imgSrc = isObj ? (item.image || '') : '';
+                    const name = isObj ? (item.name || 'Interior') : 'Interior';
+                    return (
+                      <div key={`selected-interior-${index}`} className="interior-display">
+                        <img 
+                          src={imgSrc} 
+                          alt={name} 
+                          className="interior-image clickable-image"
+                          onClick={() => {
+                            if (imgSrc) {
+                              setSelectedImage(imgSrc);
+                              setSelectedImageName(name);
+                            }
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <p className="interior-name">{name}</p>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           ) : quote.interiorDetails ? (

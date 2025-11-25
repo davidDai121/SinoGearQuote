@@ -21,8 +21,8 @@ function QuoteDetails({ section }) {
       try {
         const fetchedQuote = await getQuoteById(id);
         setQuote(fetchedQuote);
-        if (fetchedQuote && fetchedQuote.quoteName) {
-          setQuoteName(fetchedQuote.quoteName);
+        if (fetchedQuote && fetchedQuote.name) {
+          setQuoteName(fetchedQuote.name);
         }
       } catch (error) {
         console.error('获取报价单失败:', error);
@@ -36,7 +36,7 @@ function QuoteDetails({ section }) {
   const handleUpdateQuoteName = async () => {
     if (quoteName.trim()) {
       try {
-        const updatedQuote = await updateQuote(id, { quoteName: quoteName.trim() });
+        const updatedQuote = await updateQuote(id, { name: quoteName.trim() });
         if (updatedQuote) {
           setMessage('报价单名称已更新！');
           setIsEditingName(false);
@@ -51,35 +51,22 @@ function QuoteDetails({ section }) {
     }
   };
   
-  // 处理各编辑器的数据更新
   const handleModelsUpdated = () => {
     setMessage('车型数据已更新！');
     setTimeout(() => setMessage(''), 3000);
   };
-  
   const handleColorsUpdated = () => {
     setMessage('颜色数据已更新！');
     setTimeout(() => setMessage(''), 3000);
   };
-  
   const handleInteriorUpdated = () => {
     setMessage('内饰数据已更新！');
     setTimeout(() => setMessage(''), 3000);
   };
-  
   const handleFooterUpdated = () => {
     setMessage('页脚数据已更新！');
     setTimeout(() => setMessage(''), 3000);
   };
-  
-  // 从路由路径中解析当前section
-  const getCurrentSection = () => {
-    if (section) return section;
-    const pathParts = location.pathname.split('/');
-    return pathParts[pathParts.length - 1];
-  };
-  
-  const currentSection = getCurrentSection();
   
   // 如果找不到报价单，显示错误信息
   if (!quote) {
@@ -92,45 +79,12 @@ function QuoteDetails({ section }) {
     );
   }
   
-  // 渲染配置编辑器
-  const renderEditor = () => {
-    if (location.pathname.endsWith(`/quotes/${id}`)) {
-      return <Outlet />;
-    }
-    
-    switch (currentSection) {
-      case 'models':
-        return (
-          <ModelsEditor 
-            quoteId={id} 
-            onModelsUpdated={handleModelsUpdated} 
-          />
-        );
-      case 'colors':
-        return (
-          <ColorsEditor 
-            quoteId={id} 
-            onColorsUpdated={handleColorsUpdated} 
-          />
-        );
-      case 'interior':
-        return (
-          <InteriorEditor 
-            quoteId={id} 
-            onInteriorUpdated={handleInteriorUpdated} 
-          />
-        );
-      case 'footer':
-        return (
-          <FooterEditor 
-            quoteId={id} 
-            onFooterUpdated={handleFooterUpdated} 
-          />
-        );
-      default:
-        return <Outlet />;
-    }
+  const getCurrentSection = () => {
+    if (section) return section;
+    const parts = location.pathname.split('/');
+    return parts[parts.length - 1];
   };
+  const currentSection = getCurrentSection();
   
   return (
     <div className="quote-details">
@@ -153,12 +107,12 @@ function QuoteDetails({ section }) {
               <button onClick={handleUpdateQuoteName} className="btn btn-sm btn-primary">保存</button>
               <button onClick={() => {
                 setIsEditingName(false);
-                setQuoteName(quote.quoteName);
+                setQuoteName(quote.name);
               }} className="btn btn-sm btn-secondary">取消</button>
             </div>
           ) : (
             <span className="quote-name">
-              名称: {quote.quoteName || '未命名报价单'}
+              名称: {quote.name || '未命名报价单'}
               <button onClick={() => setIsEditingName(true)} className="btn-edit-name">
                 <span role="img" aria-label="编辑">✏️</span>
               </button>
@@ -179,38 +133,32 @@ function QuoteDetails({ section }) {
         </div>
       )}
       
-      {/* 配置项导航 */}
       <div className="quote-navigation">
         <Link 
-          to={`/admin/quotes/${id}/models`}
-          className={`config-nav-item ${currentSection === 'models' ? 'active' : ''}`}
+          to={`/admin/quotes/${id}/price`}
+          className={`config-nav-item ${currentSection === 'price' ? 'active' : ''}`}
         >
-          车辆型号管理
+          价格管理
         </Link>
         <Link 
-          to={`/admin/quotes/${id}/colors`}
-          className={`config-nav-item ${currentSection === 'colors' ? 'active' : ''}`}
+          to={`/admin/quotes/${id}/exterior`}
+          className={`config-nav-item ${currentSection === 'exterior' ? 'active' : ''}`}
         >
-          外观颜色管理
+          外观图片管理
         </Link>
         <Link 
           to={`/admin/quotes/${id}/interior`}
           className={`config-nav-item ${currentSection === 'interior' ? 'active' : ''}`}
         >
-          内饰管理
+          内饰图片管理
         </Link>
-        <Link 
-          to={`/admin/quotes/${id}/footer`}
-          className={`config-nav-item ${currentSection === 'footer' ? 'active' : ''}`}
-        >
-          页脚管理
-        </Link>
+      </div>
+
+      <div className="admin-editors">
+        <Outlet />
       </div>
       
-      {/* 编辑器内容区域 */}
-      <div className="quote-editor-content">
-        {renderEditor()}
-      </div>
+      {/* 编辑器内容区域通过 <Outlet /> 渲染 */}
     </div>
   );
 }

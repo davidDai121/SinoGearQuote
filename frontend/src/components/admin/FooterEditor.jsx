@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getQuoteById, updateQuote } from '../../services/adminService';
 
-function FooterEditor({ quoteId, onFooterUpdated }) {
+function FooterEditor({ _id, onFooterUpdated }) {
   const [footerText, setFooterText] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
@@ -9,9 +9,9 @@ function FooterEditor({ quoteId, onFooterUpdated }) {
 
   // 初始化页脚内容
   useEffect(() => {
-    if (quoteId) {
+    if (_id) {
       (async () => {
-        const quote = await getQuoteById(quoteId);
+        const quote = await getQuoteById(_id);
         if (quote && quote.footerText) {
           setFooterText(quote.footerText);
           setTempFooterText(quote.footerText);
@@ -22,12 +22,12 @@ function FooterEditor({ quoteId, onFooterUpdated }) {
         }
       })();
     }
-  }, [quoteId]);
+  }, [_id]);
 
   // 处理保存页脚内容
-  const handleSaveFooter = () => {
+  const handleSaveFooter = async () => {
     if (tempFooterText.trim()) {
-      const updatedQuote = updateQuote(quoteId, { footerText: tempFooterText.trim() });
+      const updatedQuote = await updateQuote(_id, { footerText: tempFooterText.trim() });
       if (updatedQuote) {
         setFooterText(tempFooterText.trim());
         setIsEditing(false);
@@ -51,7 +51,7 @@ function FooterEditor({ quoteId, onFooterUpdated }) {
   return (
     <div className="editor-container">
       <h2>页脚管理</h2>
-      {quoteId && <div className="quote-info">当前编辑报价单ID: {quoteId}</div>}
+      {_id && <div className="quote-info">当前编辑报价单ID: {_id}</div>}
       
       {message && (
         <div className={`message ${message.includes('已更新') ? 'success' : 'error'}`}>

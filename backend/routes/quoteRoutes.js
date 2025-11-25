@@ -51,17 +51,17 @@ router.post('/', async (req, res) => {
   }
   
   try {
-    let { name, quoteName, modelIds, colorIds, interiorIds, footerText } = req.body;
+    let { name, quoteName, modelIds, colorIds, interiorIds, footerText, exteriorImages, interiorImages, colorColumns, interiorColumns, modelDetails, colorDetails, interiorDetails } = req.body;
     // 兼容前端可能传递的字段名（models/colors/interiors）
     if (!modelIds && Array.isArray(req.body.models)) modelIds = req.body.models;
     if (!colorIds && Array.isArray(req.body.colors)) colorIds = req.body.colors;
     if (!interiorIds && Array.isArray(req.body.interiors)) interiorIds = req.body.interiors;
     
-    // 计算总价
-    let totalPrice = 0;
+    // 计算总价（如果未提供，则根据选择计算）
+    let totalPrice = (typeof req.body.totalPrice === 'number') ? req.body.totalPrice : 0;
     
     // 获取并累加车型价格
-    if (modelIds && modelIds.length > 0) {
+    if (totalPrice === 0 && modelIds && modelIds.length > 0) {
       const models = await VehicleModel.find({ _id: { $in: modelIds } });
       models.forEach(model => {
         totalPrice += model.price;
@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
     }
     
     // 获取并累加颜色价格
-    if (colorIds && colorIds.length > 0) {
+    if (typeof req.body.totalPrice !== 'number' && colorIds && colorIds.length > 0) {
       const colors = await Color.find({ _id: { $in: colorIds } });
       colors.forEach(color => {
         totalPrice += color.price;
@@ -77,7 +77,7 @@ router.post('/', async (req, res) => {
     }
     
     // 获取并累加内饰价格
-    if (interiorIds && interiorIds.length > 0) {
+    if (typeof req.body.totalPrice !== 'number' && interiorIds && interiorIds.length > 0) {
       const interiors = await Interior.find({ _id: { $in: interiorIds } });
       interiors.forEach(interior => {
         totalPrice += interior.price;
@@ -89,6 +89,13 @@ router.post('/', async (req, res) => {
       models: modelIds || [],
       colors: colorIds || [],
       interiors: interiorIds || [],
+      exteriorImages: Array.isArray(exteriorImages) ? exteriorImages : [],
+      interiorImages: Array.isArray(interiorImages) ? interiorImages : [],
+      colorColumns: typeof colorColumns === 'number' ? colorColumns : undefined,
+      interiorColumns: typeof interiorColumns === 'number' ? interiorColumns : undefined,
+      modelDetails: modelDetails || null,
+      colorDetails: colorDetails || null,
+      interiorDetails: interiorDetails || null,
       footerText,
       totalPrice
     });
@@ -115,7 +122,7 @@ router.put('/:id', async (req, res) => {
   }
   
   try {
-    let { name, quoteName, modelIds, colorIds, interiorIds, footerText } = req.body;
+    let { name, quoteName, modelIds, colorIds, interiorIds, footerText, exteriorImages, interiorImages, colorColumns, interiorColumns, modelDetails, colorDetails, interiorDetails } = req.body;
     // 兼容前端可能传递的字段名（models/colors/interiors）
     if (!modelIds && Array.isArray(req.body.models)) modelIds = req.body.models;
     if (!colorIds && Array.isArray(req.body.colors)) colorIds = req.body.colors;
@@ -153,6 +160,13 @@ router.put('/:id', async (req, res) => {
       models: modelIds || [],
       colors: colorIds || [],
       interiors: interiorIds || [],
+      exteriorImages: Array.isArray(exteriorImages) ? exteriorImages : undefined,
+      interiorImages: Array.isArray(interiorImages) ? interiorImages : undefined,
+      colorColumns: typeof colorColumns === 'number' ? colorColumns : undefined,
+      interiorColumns: typeof interiorColumns === 'number' ? interiorColumns : undefined,
+      modelDetails: modelDetails || undefined,
+      colorDetails: colorDetails || undefined,
+      interiorDetails: interiorDetails || undefined,
       footerText,
       totalPrice,
       updatedAt: Date.now()

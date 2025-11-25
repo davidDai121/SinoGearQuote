@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getInteriorItems, saveInteriorItems, getSelectedInteriorItems, saveSelectedInteriorItems, updateQuote } from '../../services/adminService';
+import { getInteriorItems, saveInteriorItems, getSelectedInteriorItems, saveSelectedInteriorItems, updateQuote, getQuoteById, deleteInterior } from '../../services/adminService';
 
-function InteriorEditor({ quoteId, onInteriorUpdated }) {
+function InteriorEditor({ _id, onInteriorUpdated }) {
   const [interiorItems, setInteriorItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [tempSelectedItems, setTempSelectedItems] = useState([]);
@@ -15,34 +15,35 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
   const [columns, setColumns] = useState(2); // 默认2列
   
   useEffect(() => {
-    // 从报价单中加载列数配置
-    if (quoteId) {
-      // 使用adminService中的服务函数获取报价单数据
-      const quotes = JSON.parse(localStorage.getItem('savedQuotes') || '[]');
-      const quote = quotes.find(q => q.id === quoteId);
-      if (quote && quote.interiorColumns) {
-        setColumns(quote.interiorColumns);
-      }
-    }
-  }, [quoteId]);
+    if (!_id) return;
+    const fetchColumnConfig = async () => {
+      try {
+        const quote = await getQuoteById(_id);
+        if (quote && typeof quote === 'object' && typeof quote.interiorColumns === 'number') {
+          setColumns(quote.interiorColumns);
+        }
+      } catch {}
+    };
+    fetchColumnConfig();
+  }, [_id]);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     (async () => {
       await loadInteriorItems();
-      if (quoteId) {
+      if (_id) {
         await loadSelectedItems();
       }
     })();
-  }, [quoteId]);
+  }, [_id]);
 
   const loadInteriorItems = async () => {
-    const data = await getInteriorItems(quoteId);
+    const data = await getInteriorItems(_id);
     setInteriorItems(Array.isArray(data) ? data : []);
   };
 
   const loadSelectedItems = async () => {
-    const selected = await getSelectedInteriorItems(quoteId);
+    const selected = await getSelectedInteriorItems(_id);
     setSelectedItems(Array.isArray(selected) ? selected : []);
     setTempSelectedItems(Array.isArray(selected) ? [...selected] : []);
   };
@@ -60,14 +61,14 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
   };
 
   // 辅助函数：更新报价单中的内饰图片信息
-  const updateQuoteWithInteriorImages = (itemsToUse = interiorItems) => {
+  const updateQuoteWithInteriorImages = async (itemsToUse = interiorItems) => {
     try {
       // 获取所有选中内饰的图片信息
       const interiorImages = [];
       const allInteriorInfo = [];
       
       tempSelectedItems.forEach(itemId => {
-        const item = itemsToUse.find(i => i.id === itemId);
+        const item = itemsToUse.find(i => i._id === itemId);
         
         // 如果找到内饰且有图片，添加到图片数组
         if (item && item.image) {
@@ -88,7 +89,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
       const firstSelectedItem = allInteriorInfo[0];
       
       // 更新报价单，直接存储内饰图片
-      const updatedQuote = updateQuote(quoteId, {
+      const updatedQuote = await updateQuote(_id, {
         // 向后兼容字段
         interior: firstSelectedItem?.name || '',
         interiorDetails: firstSelectedItem || null,
@@ -104,9 +105,9 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     }
   };
 
-  const handleConfirmAdd = () => {
+  const handleConfirmAdd = async () => {
     // 直接获取并存储选中的内饰图片
-    if (!quoteId) {
+    if (!_id) {
       setMessage('错误：未找到报价单ID！');
       return;
     }
@@ -117,13 +118,32 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     }
     
     try {
-      const updateResult = updateQuoteWithInteriorImages();
+      // 为确保有有效的 _id，优先刷新一次列表
+      if (!Array.isArray(interiorItems) || interiorItems.length === 0) {
+        (async () => { await loadInteriorItems(); })();
+      }
+      const updateResult = await updateQuoteWithInteriorImages();
       
       if (!updateResult) {
         setMessage('更新报价单失败，请检查选中的内饰项！');
         return;
       }
       
+      // 构建用于持久化的内饰ID（Mongo _id），过滤无效项
+      const idsForSave = tempSelectedItems.map((selId) => {
+        const item = interiorItems.find((i) => i && i._id === selId)
+          || (typeof selId === 'number' ? interiorItems[selId] : null);
+        return item && item._id ? item._id : null;
+      }).filter(Boolean);
+
+      if (idsForSave.length === 0) {
+        setMessage('无法识别选中的内饰ID，请刷新后重试！');
+        return;
+      }
+
+      // 持久化选中的内饰ID到报价单
+      saveSelectedInteriorItems(idsForSave, _id);
+
       // 更新状态
       setSelectedItems([...tempSelectedItems]);
       // 仍然保存selectedItems以保持UI一致性，但主要逻辑已改为直接存储图片
@@ -279,13 +299,14 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
     setFormData(interiorItems[index]);
   };
 
-  const handleRemoveItem = (index) => {
+  const handleRemoveItem = async (index) => {
     if (window.confirm('确定要删除这个内饰项吗？')) {
-      const itemId = interiorItems[index].id;
+      const itemId = interiorItems[index]._id;
+      await deleteInterior(itemId);
       const newItems = [...interiorItems];
       newItems.splice(index, 1);
       setInteriorItems(newItems);
-      saveInteriorItems(newItems, quoteId);
+      await loadInteriorItems();
       
       // 同时从已选择列表中移除
       const newSelected = selectedItems.filter(id => id !== itemId);
@@ -314,30 +335,39 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
       newItems = [...interiorItems];
       newItems[editingIndex] = { 
         ...formData,
-        id: newItems[editingIndex].id // 保留原ID
+        _id: newItems[editingIndex]._id
       };
     } else {
       // 添加新内饰项
-      const newId = interiorItems.length > 0 
-        ? Math.max(...interiorItems.map(item => item.id)) + 1 
-        : 1;
       newItems = [...interiorItems, { 
         ...formData,
-        id: newId
       }];
     }
 
     setInteriorItems(newItems);
-    const saveResult = await saveInteriorItems(newItems, quoteId);
+      const saveResult = await saveInteriorItems(newItems, _id);
     
     if (!saveResult) {
       setMessage('保存内饰数据失败！');
       return;
     }
     
+    // 刷新一次，保证拥有最新的 _id
+    await loadInteriorItems();
+
     // 如果当前有选中的内饰项且存在报价单，自动更新报价单中的内饰图片信息
-    if (quoteId && tempSelectedItems.length > 0) {
+    if (_id && tempSelectedItems.length > 0) {
       await updateQuoteWithInteriorImages(newItems);
+
+      // 持久化选中的内饰ID到报价单
+      const idsForSave = tempSelectedItems.map((selId) => {
+        const item = (interiorItems || []).find((i) => i && i._id === selId)
+          || (typeof selId === 'number' ? (interiorItems || [])[selId] : null);
+        return item && item._id ? item._id : null;
+      }).filter(Boolean);
+      if (idsForSave.length > 0) {
+        await saveSelectedInteriorItems(idsForSave, _id);
+      }
     }
     
     setMessage(editingIndex >= 0 ? '更新成功！' : '添加成功！');
@@ -355,7 +385,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
       // 不传递quoteId时会返回默认内饰项
       const defaultItems = await getInteriorItems();
       setInteriorItems(defaultItems);
-      await saveInteriorItems(defaultItems, quoteId);
+      await saveInteriorItems(defaultItems, _id);
       setMessage('重置成功！');
       if (onInteriorUpdated) {
         onInteriorUpdated();
@@ -367,7 +397,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
   return (
     <div className="editor-container">
       <h2>内饰管理</h2>
-      {quoteId && <div className="quote-info">当前编辑报价单ID: {quoteId}</div>}
+      {_id && <div className="quote-info">当前编辑报价单ID: {_id}</div>}
       
       {message && (
         <div className={`message ${message.includes('成功') ? 'success' : 'error'}`}>
@@ -454,7 +484,7 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
       </form>
       
       {/* 图片展示列数配置 */}
-      {quoteId && (
+      {_id && (
         <div className="columns-config" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
           <h4>图片展示配置</h4>
           <div className="form-group">
@@ -474,8 +504,8 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
             <small className="help-text" style={{ display: 'block', marginTop: '5px', color: '#666' }}>设置在客户查看报价单时内饰图片的显示列数</small>
           </div>
           <button 
-            onClick={() => {
-              updateQuote(quoteId, { interiorColumns: columns });
+            onClick={async () => {
+              await updateQuote(_id, { interiorColumns: columns });
               setMessage('列数配置已保存！');
               setTimeout(() => setMessage(''), 3000);
             }}
@@ -509,14 +539,14 @@ function InteriorEditor({ quoteId, onInteriorUpdated }) {
         
         <div className="interior-grid">
           {interiorItems.map((item, index) => {
-            const isSelected = tempSelectedItems.includes(item.id);
+            const isSelected = tempSelectedItems.includes(item._id);
             return (
               <div key={index} className={`interior-item ${isSelected ? 'selected' : ''}`}>
                 <div className="selection-checkbox">
                   <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={() => handleSelectItem(item.id)}
+                    onChange={() => handleSelectItem(item._id)}
                     className="select-checkbox"
                   />
                 </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getExteriorColors, saveExteriorColors, updateQuote } from '../../services/adminService';
+import { getExteriorColors, saveExteriorColors, updateQuote, saveSelectedExteriorColors, getQuoteById, deleteColor } from '../../services/adminService';
 
-function ColorsEditor({ quoteId, onColorsUpdated }) {
+function ColorsEditor({ _id, onColorsUpdated }) {
   const [colors, setColors] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
   const [editingIndex, setEditingIndex] = useState(-1);
@@ -14,26 +14,27 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
   const [columns, setColumns] = useState(2); // 默认2列
   
   useEffect(() => {
-    // 从报价单中加载列数配置
-    if (quoteId) {
-      // 使用adminService中的服务函数获取报价单数据
-      const quotes = JSON.parse(localStorage.getItem('savedQuotes') || '[]');
-      const quote = quotes.find(q => q.id === quoteId);
-      if (quote && quote.colorColumns) {
-        setColumns(quote.colorColumns);
-      }
-    }
-  }, [quoteId]);
+    if (!_id) return;
+    const fetchColumnConfig = async () => {
+      try {
+        const quote = await getQuoteById(_id);
+        if (quote && typeof quote === 'object' && typeof quote.colorColumns === 'number') {
+          setColumns(quote.colorColumns);
+        }
+      } catch {}
+    };
+    fetchColumnConfig();
+  }, [_id]);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     (async () => {
       await loadColors();
     })();
-  }, [quoteId]);
+  }, [_id]);
 
   const loadColors = async () => {
-    const data = await getExteriorColors(quoteId);
+    const data = await getExteriorColors(_id);
     setColors(Array.isArray(data) ? data : []);
   };
 
@@ -49,9 +50,9 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     setSelectedColors(newSelected);
   };
 
-  const handleConfirmAdd = () => {
+  const handleConfirmAdd = async () => {
     // 直接获取并存储选中的外观图片
-    if (!quoteId) {
+    if (!_id) {
       setMessage('错误：未找到报价单ID！');
       return;
     }
@@ -62,32 +63,15 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     }
     
     try {
+      // 刷新列表，确保拥有最新的 _id
+      await loadColors();
       // 获取所有选中颜色的图片信息
       const exteriorImages = [];
       const allColorInfo = [];
       
-      selectedColors.forEach(colorId => {
-        // 查找颜色信息的多种方式
-        let color;
-        
-        // 首先尝试通过id字段查找
-        color = colors.find(c => c.id === colorId);
-        
-        // 如果找不到，再尝试通过数组索引查找
-        if (!color && typeof colorId === 'number' && colorId >= 0 && colorId < colors.length) {
-          color = colors[colorId];
-        }
-        
-        // 如果还找不到，再尝试通过字符串索引查找
-        if (!color && typeof colorId === 'string') {
-          const index = parseInt(colorId);
-          if (!isNaN(index) && index >= 0 && index < colors.length) {
-            color = colors[index];
-          }
-        }
-        
-        // 如果找到颜色且有图片，添加到图片数组
-        if (color && color.image) {
+      selectedColors.forEach((colorId) => {
+        const color = colors.find((c) => (c && c._id) === colorId);
+        if (color && typeof color === 'object' && color.image) {
           exteriorImages.push({
             name: color.name,
             url: color.image
@@ -101,11 +85,25 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
         return;
       }
       
+      // 构建用于持久化的颜色ID（Mongo _id），过滤无效项
+      const idsForSave = selectedColors.map((selId) => {
+        const color = colors.find((c) => (c && c._id) === selId);
+        return color && color._id ? color._id : null;
+      }).filter(Boolean);
+
+      if (idsForSave.length === 0) {
+        setMessage('无法识别选中的颜色ID，请刷新后重试！');
+        return;
+      }
+
+      // 先保存选中的颜色ID到报价单（持久化）
+      saveSelectedExteriorColors(idsForSave, _id);
+
       // 找到第一个选中的颜色作为主要显示的颜色（保持向后兼容）
       const firstSelectedColor = allColorInfo[0];
       
       // 更新报价单，直接存储外观图片
-      const updatedQuote = updateQuote(quoteId, {
+      const updatedQuote = await updateQuote(_id, {
         // 向后兼容字段
         color: firstSelectedColor?.name || '',
         colorDetails: firstSelectedColor || null,
@@ -116,7 +114,7 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
       
       if (!updatedQuote) {
         setMessage('更新报价单失败，请检查报价单ID是否正确！');
-        console.error('更新报价单失败，报价单ID:', quoteId);
+        console.error('更新报价单失败，报价单ID:', _id);
         return;
       }
       
@@ -250,13 +248,14 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     setFormData(colors[index]);
   };
 
-  const handleDelete = (index) => {
+  const handleDelete = async (index) => {
     if (window.confirm('确定要删除这个颜色吗？')) {
-      const colorId = colors[index].id || index;
+      const colorId = colors[index]._id;
+      await deleteColor(colorId);
       const newColors = [...colors];
       newColors.splice(index, 1);
       setColors(newColors);
-      saveExteriorColors(newColors, quoteId);
+      await loadColors();
       
       // 同时从已选择列表中移除
       const newSelected = selectedColors.filter(id => id !== colorId);
@@ -270,7 +269,7 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.name) {
@@ -284,47 +283,28 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
       newColors = [...colors];
       newColors[editingIndex] = { ...formData };
     } else {
-      // 添加新颜色
-      const newId = colors.length > 0 
-        ? Math.max(...colors.map(c => c.id || 0)) + 1 
-        : 1;
-      newColors = [...colors, { ...formData, id: newId }];
+      newColors = [...colors, { ...formData }];
     }
 
     setColors(newColors);
-    const saveResult = saveExteriorColors(newColors, quoteId);
+      const saveResult = await saveExteriorColors(newColors, _id);
     
     if (!saveResult) {
       setMessage('保存颜色数据失败！');
       return;
     }
     
+    // 保存后刷新一次，保证有最新的 _id
+    await loadColors();
+
     // 更新报价单中的颜色图片信息
-    if (quoteId && selectedColors.length > 0) {
+    if (_id && selectedColors.length > 0) {
       // 获取所有选中颜色的图片信息
       const exteriorImages = [];
       const allColorInfo = [];
       
       selectedColors.forEach(colorId => {
-        let color;
-        
-        // 多种方式查找颜色信息，确保找到对应颜色
-        color = newColors.find(c => c.id === colorId);
-        
-        if (!color && typeof colorId === 'number') {
-          // 如果是数字ID，尝试通过索引查找
-          if (colorId >= 0 && colorId < newColors.length) {
-            color = newColors[colorId];
-          }
-        }
-        
-        if (!color && typeof colorId === 'string') {
-          // 如果是字符串ID，尝试转换为数字索引
-          const numId = parseInt(colorId);
-          if (!isNaN(numId) && numId >= 0 && numId < newColors.length) {
-            color = newColors[numId];
-          }
-        }
+        const color = newColors.find(c => (c && c._id) === colorId);
         
         if (color && color.image) {
           exteriorImages.push({
@@ -335,11 +315,22 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
         }
       });
       
+      // 构建用于持久化的颜色ID（Mongo _id），过滤无效项
+      const idsForSave = selectedColors.map((selId) => {
+        const color = colors.find((c) => (c && c._id) === selId);
+        return color && color._id ? color._id : null;
+      }).filter(Boolean);
+
+      if (idsForSave.length > 0) {
+        // 持久化选中的颜色ID到报价单
+        saveSelectedExteriorColors(idsForSave, _id);
+      }
+
       // 找到第一个选中的颜色作为主要显示的颜色
       const firstSelectedColor = allColorInfo[0];
       
       // 更新报价单
-      const updatedQuote = updateQuote(quoteId, {
+      const updatedQuote = await updateQuote(_id, {
         color: firstSelectedColor?.name || '',
         colorDetails: firstSelectedColor || null,
         exteriorImages: exteriorImages,
@@ -367,7 +358,7 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
   return (
     <div className="editor-container" style={{ width: '100%', display: 'block' }}>
       <h2>外观颜色管理</h2>
-      {quoteId && <div className="quote-info">当前编辑报价单ID: {quoteId}</div>}
+      {_id && <div className="quote-info">当前编辑报价单ID: {_id}</div>}
       
       {message && (
         <div className={`message ${message.includes('成功') ? 'success' : 'error'}`}>
@@ -447,7 +438,7 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
       </form>
       
       {/* 图片展示列数配置 */}
-      {quoteId && (
+      {_id && (
         <div className="columns-config" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
           <h4>图片展示配置</h4>
           <div className="form-group">
@@ -467,8 +458,8 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
             <small className="help-text" style={{ display: 'block', marginTop: '5px', color: '#666' }}>设置在客户查看报价单时颜色图片的显示列数</small>
           </div>
           <button 
-            onClick={() => {
-              updateQuote(quoteId, { colorColumns: columns });
+            onClick={async () => {
+              await updateQuote(_id, { colorColumns: columns });
               setMessage('列数配置已保存！');
               setTimeout(() => setMessage(''), 3000);
             }}
@@ -496,7 +487,8 @@ function ColorsEditor({ quoteId, onColorsUpdated }) {
           
           <div className="colors-container">
           {colors.map((color, index) => {
-              const colorId = color.id || index;
+              if (!color) return null;
+              const colorId = color._id;
               const isSelected = selectedColors.includes(colorId);
               return (
                 <div 
